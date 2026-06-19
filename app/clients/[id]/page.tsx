@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowDownRight, ArrowUpRight, RefreshCw, Mic } from "lucide-react";
+import { ArrowLeft, ArrowDownRight, ArrowUpRight, RefreshCw, Mic, FileText } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { SentimentTag } from "@/components/app/sentiment-tag";
 import { clients, getClient, formatBalance } from "@/lib/mock-data";
@@ -69,6 +69,13 @@ export default async function ClientDetailPage({
             <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground mt-1">
               Total balance
             </p>
+            <Link
+              href={`/clients/${client.id}/report`}
+              className="inline-flex items-center gap-2 mt-5 rounded-full border border-foreground/15 bg-foreground/[0.03] px-4 h-9 text-sm hover:bg-foreground/[0.07] transition-colors"
+            >
+              <FileText className="w-4 h-4 text-[#eca8d6]" />
+              Export advisor brief
+            </Link>
           </div>
         </div>
 

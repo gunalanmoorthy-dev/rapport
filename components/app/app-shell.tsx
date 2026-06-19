@@ -4,9 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const appLinks = [
+  { name: "Brief", href: "/digest" },
   { name: "Echo", href: "/echo" },
   { name: "Clients", href: "/clients" },
   { name: "Staging", href: "/staging" },
+  { name: "Vitality", href: "/vitality" },
+  { name: "Compliance", href: "/compliance" },
+  { name: "Audit", href: "/audit" },
+  { name: "Synergy", href: "/synergy" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -21,17 +26,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <span className="text-xl font-display tracking-tight">RAPPORT</span>
               <span className="text-[10px] font-mono text-muted-foreground mt-0.5">TM</span>
             </Link>
-            <nav className="hidden md:flex items-center gap-8">
+            <nav className="hidden lg:flex items-center gap-5 xl:gap-6">
               {appLinks.map((link) => {
                 const active =
                   pathname === link.href ||
-                  (link.href !== "/echo" && pathname.startsWith(link.href)) ||
-                  (link.href === "/clients" && pathname.startsWith("/clients"));
+                  (link.href !== "/echo" && pathname.startsWith(link.href));
                 return (
                   <Link
                     key={link.name}
                     href={link.href}
-                    className={`text-sm font-mono uppercase tracking-wider transition-colors ${
+                    className={`text-xs font-mono uppercase tracking-wider transition-colors ${
                       active
                         ? "text-foreground"
                         : "text-muted-foreground hover:text-foreground"
