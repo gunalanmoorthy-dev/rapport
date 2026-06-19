@@ -21,8 +21,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'COMPUTE - AI Agents for Distributed Computing',
-  description: 'Deploy autonomous AI agents on distributed infrastructure. Offload complex tasks to intelligent workers that run 24/7.',
+  title: "Rapport - The advisor's silent back-office",
+  description:
+    'Rapport turns a 60-second voice note into verified CRM updates, compliance logs, and portfolio reconciliation — so you stay with your client, not your keyboard.',
   generator: 'v0.app',
 }
 
