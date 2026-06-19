@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 
-const words = ["automate", "delegate", "execute", "scale"];
+const words = ["silent", "tireless", "discreet", "trusted"];
 
 function BlurWord({ word, trigger }: { word: string; trigger: number }) {
   const letters = word.split("");
@@ -174,26 +174,36 @@ export function HeroSection() {
         >
           <span className="inline-flex items-center gap-3 text-sm font-mono text-white/60">
             <span className="w-8 h-px bg-white/30" />
-            Autonomous AI agents for distributed computing
+            The advisor&apos;s silent back-office
           </span>
         </div>
         
         {/* Main headline */}
-        <div className="mb-12">
+        <div className="mb-8">
           <h1 
             className={`text-left text-[clamp(2rem,6vw,7rem)] font-display leading-[0.92] tracking-tight text-white transition-all duration-1000 ${
               isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
             }`}
           >
-            <span className="block whitespace-nowrap">Distributed compute,</span>
+            <span className="block whitespace-nowrap">The advisor&apos;s</span>
             <span className="block whitespace-nowrap">
-              agents that{" "}
               <span className="relative inline-block">
                 <BlurWord word={words[wordIndex]} trigger={wordIndex} />
-              </span>
+              </span>{" "}
+              back-office
             </span>
           </h1>
         </div>
+
+        {/* Subline */}
+        <p
+          className={`max-w-xl text-base lg:text-lg text-white/70 leading-relaxed transition-all duration-1000 delay-200 ${
+            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          }`}
+        >
+          Rapport turns a 60-second voice note into verified CRM updates, compliance logs,
+          and portfolio reconciliation — so you stay with your client, not your keyboard.
+        </p>
         </div>
       </div>
       
@@ -205,9 +215,9 @@ export function HeroSection() {
       >
         <div className="max-w-[1400px] mx-auto flex items-start gap-10 lg:gap-20">
           {[
-            { value: "3500+", label: "autonomous agents active" },
-            { value: "99.7%", label: "distributed uptime" },
-            { value: "<50ms", label: "execution latency" },
+            { value: "12 hrs/week", label: "saved" },
+            { value: "98%", label: "auto-commit accuracy" },
+            { value: "0", label: "client-facing AI" },
           ].map((stat) => (
             <div key={stat.label} className="flex flex-col gap-2">
               <span className="text-3xl lg:text-4xl font-display text-white">{stat.value}</span>
