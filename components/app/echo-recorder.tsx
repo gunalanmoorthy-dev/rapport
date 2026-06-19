@@ -2,11 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Mic, Square, Check } from "lucide-react";
+import { toast } from "sonner";
 import { liveTranscript } from "@/lib/mock-data";
 
-type Phase = "idle" | "recording" | "done";
+type Phase = "idle" | "recording" | "processing" | "done";
 
 const MAX_SECONDS = 60;
+
+// Fixed bar heights so the waveform is deterministic (no hydration mismatch).
+const WAVE_BARS = [0.4, 0.7, 0.95, 0.55, 0.8, 0.35, 0.6, 0.9, 0.45, 0.75, 0.5, 0.85, 0.3, 0.65, 0.95, 0.5, 0.7, 0.4];
 
 export function EchoRecorder() {
   const [phase, setPhase] = useState<Phase>("idle");
@@ -16,11 +20,14 @@ export function EchoRecorder() {
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lineTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const phaseTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const clearAll = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     lineTimers.current.forEach(clearTimeout);
     lineTimers.current = [];
+    phaseTimers.current.forEach(clearTimeout);
+    phaseTimers.current = [];
   };
 
   useEffect(() => clearAll, []);
@@ -55,10 +62,20 @@ export function EchoRecorder() {
     });
   };
 
+  const finishProcessing = () => {
+    setPhase("done");
+    // Auto-commit confirmation for the high-confidence update.
+    toast.success("Committed to Eleanor Harrington — balance updated", {
+      description: "4 high-confidence changes committed · 1 sent to Staging",
+    });
+  };
+
   const stop = () => {
     clearAll();
     setPartial("");
-    setPhase("done");
+    setPhase("processing");
+    const t = setTimeout(finishProcessing, 2600);
+    phaseTimers.current.push(t);
   };
 
   const reset = () => {
@@ -69,9 +86,9 @@ export function EchoRecorder() {
     setPartial("");
   };
 
-  const mmss = `${String(Math.floor(seconds / 60)).padStart(1, "0")}:${String(
-    seconds % 60
-  ).padStart(2, "0")}`;
+  const remaining = MAX_SECONDS - seconds;
+  const countdown = `0:${String(remaining).padStart(2, "0")}`;
+  const elapsed = `${String(Math.floor(seconds / 60))}:${String(seconds % 60).padStart(2, "0")}`;
 
   return (
     <div className="flex flex-col items-center">
@@ -79,24 +96,44 @@ export function EchoRecorder() {
       <div className="relative flex items-center justify-center mb-8" style={{ width: 240, height: 240 }}>
         {phase === "recording" && (
           <>
-            <span className="absolute inset-0 rounded-full bg-[#eca8d6]/20 animate-ping" />
-            <span className="absolute inset-6 rounded-full bg-[#eca8d6]/10 animate-pulse" />
+            <span className="absolute inset-0 rounded-full bg-red-500/20 animate-ping" />
+            <span className="absolute inset-4 rounded-full bg-red-500/15 animate-pulse" />
+            <span className="absolute inset-0 rounded-full border border-red-500/50" />
           </>
         )}
-        <span
-          className={`absolute inset-0 rounded-full border ${
-            phase === "recording" ? "border-[#eca8d6]/40" : "border-foreground/15"
-          }`}
-        />
+        {phase === "processing" && (
+          <>
+            <span className="absolute inset-0 rounded-full border border-[#eca8d6]/30" />
+            <span className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#eca8d6] animate-spin" />
+          </>
+        )}
+        {(phase === "idle" || phase === "done") && (
+          <span
+            className={`absolute inset-0 rounded-full border ${
+              phase === "done" ? "border-[#eca8d6]/40" : "border-foreground/15"
+            }`}
+          />
+        )}
         <span className="absolute inset-8 rounded-full border border-foreground/10" />
 
         <button
           type="button"
-          onClick={phase === "recording" ? stop : phase === "done" ? reset : start}
-          aria-label={phase === "recording" ? "Stop recording" : "Start recording"}
+          onClick={phase === "recording" ? stop : phase === "done" ? reset : phase === "idle" ? start : undefined}
+          disabled={phase === "processing"}
+          aria-label={
+            phase === "recording"
+              ? "Stop recording"
+              : phase === "processing"
+              ? "Processing"
+              : phase === "done"
+              ? "Record another brief"
+              : "Start recording"
+          }
           className={`relative z-10 flex items-center justify-center rounded-full transition-all duration-300 ${
             phase === "recording"
-              ? "w-28 h-28 bg-[#eca8d6] text-black"
+              ? "w-28 h-28 bg-red-500 text-white"
+              : phase === "processing"
+              ? "w-28 h-28 bg-[#eca8d6]/10 text-[#eca8d6] cursor-wait"
               : phase === "done"
               ? "w-32 h-32 bg-foreground/5 border border-foreground/15 text-foreground hover:bg-foreground/10"
               : "w-32 h-32 bg-foreground text-background hover:scale-105"
@@ -104,6 +141,16 @@ export function EchoRecorder() {
         >
           {phase === "recording" ? (
             <Square className="w-8 h-8 fill-current" />
+          ) : phase === "processing" ? (
+            <div className="flex items-end gap-1 h-8">
+              {WAVE_BARS.slice(0, 5).map((h, i) => (
+                <span
+                  key={i}
+                  className="w-1 rounded-full bg-[#eca8d6] animate-waveform"
+                  style={{ height: `${h * 100}%`, animationDelay: `${i * 0.12}s` }}
+                />
+              ))}
+            </div>
           ) : phase === "done" ? (
             <Check className="w-10 h-10 text-[#eca8d6]" />
           ) : (
@@ -111,6 +158,19 @@ export function EchoRecorder() {
           )}
         </button>
       </div>
+
+      {/* Live waveform (recording only) */}
+      {phase === "recording" && (
+        <div className="flex items-end justify-center gap-1 h-12 mb-6" aria-hidden="true">
+          {WAVE_BARS.map((h, i) => (
+            <span
+              key={i}
+              className="w-1 rounded-full bg-red-500/70 animate-waveform"
+              style={{ height: `${h * 100}%`, animationDelay: `${(i % 6) * 0.1}s` }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Status line */}
       <div className="flex flex-col items-center gap-2 mb-12 text-center">
@@ -124,18 +184,33 @@ export function EchoRecorder() {
         )}
         {phase === "recording" && (
           <>
-            <p className="text-4xl font-display tabular-nums text-[#eca8d6]">{mmss}</p>
+            <p className="text-5xl font-display tabular-nums text-red-400">{countdown}</p>
             <p className="text-sm text-muted-foreground font-mono flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#eca8d6] animate-pulse" />
-              Listening · {MAX_SECONDS - seconds}s remaining
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              Recording · {remaining}s remaining
+            </p>
+          </>
+        )}
+        {phase === "processing" && (
+          <>
+            <p className="text-2xl font-display flex items-center gap-2">
+              Rapport is thinking
+              <span className="inline-flex items-end gap-1 pb-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#eca8d6] animate-thinking-dot" style={{ animationDelay: "0s" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#eca8d6] animate-thinking-dot" style={{ animationDelay: "0.2s" }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#eca8d6] animate-thinking-dot" style={{ animationDelay: "0.4s" }} />
+              </span>
+            </p>
+            <p className="text-sm text-muted-foreground font-mono">
+              Verifying against CRM, compliance, and portfolio records…
             </p>
           </>
         )}
         {phase === "done" && (
           <>
-            <p className="text-2xl font-display">Brief captured · {mmss}</p>
+            <p className="text-2xl font-display">Brief captured · {elapsed}</p>
             <p className="text-sm text-muted-foreground font-mono">
-              {lines.length} statements queued for verification.{" "}
+              {lines.length} statements verified.{" "}
               <button onClick={reset} className="text-[#eca8d6] hover:underline">
                 Record another
               </button>
@@ -150,6 +225,11 @@ export function EchoRecorder() {
           <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
             Live transcript
           </span>
+          {phase === "processing" && (
+            <span className="text-xs font-mono uppercase tracking-wider text-[#eca8d6] animate-pulse">
+              Analyzing
+            </span>
+          )}
           {phase === "done" && (
             <span className="text-xs font-mono uppercase tracking-wider text-[#eca8d6]">
               Sent to Staging
@@ -158,12 +238,21 @@ export function EchoRecorder() {
         </div>
 
         <div className="min-h-[260px] rounded-md border border-foreground/10 bg-foreground/[0.02] p-6 font-mono text-sm leading-relaxed">
-          {lines.length === 0 && !partial && (
+          {lines.length === 0 && !partial && phase !== "processing" && (
             <p className="text-muted-foreground/50">
-              {phase === "idle"
-                ? "Transcript will appear here as you speak…"
-                : "…"}
+              Transcript will appear here as you speak…
             </p>
+          )}
+          {phase === "processing" && lines.length === 0 && (
+            <div className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="h-4 rounded bg-foreground/10 animate-pulse"
+                  style={{ width: `${90 - i * 18}%`, animationDelay: `${i * 0.15}s` }}
+                />
+              ))}
+            </div>
           )}
           <div className="space-y-3">
             {lines.map((line, i) => (
@@ -178,7 +267,7 @@ export function EchoRecorder() {
                   {String(lines.length + 1).padStart(2, "0")}
                 </span>
                 {partial}
-                <span className="inline-block w-2 h-4 ml-1 align-middle bg-[#eca8d6] animate-pulse" />
+                <span className="inline-block w-2 h-4 ml-1 align-middle bg-red-500 animate-pulse" />
               </p>
             )}
           </div>

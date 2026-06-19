@@ -14,6 +14,28 @@ const categoryStyle: Record<StagedChange["category"], string> = {
   Compliance: "text-amber-300 bg-amber-400/10 border-amber-400/20",
 };
 
+function ConfidenceMeter({ value }: { value: number }) {
+  const pct = Math.round(value * 100);
+  const tone =
+    value >= 0.7
+      ? { bar: "bg-emerald-400", text: "text-emerald-300" }
+      : value >= 0.55
+      ? { bar: "bg-amber-400", text: "text-amber-300" }
+      : { bar: "bg-red-400", text: "text-red-300" };
+
+  return (
+    <div className="flex items-center gap-2" title={`${pct}% confidence`}>
+      <div className="w-16 h-1.5 rounded-full bg-foreground/10 overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${tone.bar}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className={`text-xs font-mono tabular-nums ${tone.text}`}>{pct}%</span>
+    </div>
+  );
+}
+
 export function StagingQueue() {
   const [resolved, setResolved] = useState<Record<string, Resolution>>({});
 
@@ -58,9 +80,7 @@ export function StagingQueue() {
                 >
                   {change.category}
                 </span>
-                <span className="text-xs font-mono text-muted-foreground">
-                  {Math.round(change.confidence * 100)}% conf.
-                </span>
+                <ConfidenceMeter value={change.confidence} />
               </div>
             </div>
 
@@ -135,10 +155,13 @@ export function StagingQueue() {
       })}
 
       {pending.length === 0 && (
-        <div className="border border-foreground/10 rounded-md p-12 text-center">
-          <p className="text-2xl font-display mb-2">Queue clear</p>
-          <p className="text-sm font-mono text-muted-foreground">
-            Every change has been reviewed. High-confidence updates auto-commit silently.
+        <div className="border border-foreground/10 rounded-md p-16 flex flex-col items-center text-center">
+          <div className="w-14 h-14 rounded-full bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center mb-5">
+            <ShieldCheck className="w-6 h-6 text-emerald-300" />
+          </div>
+          <p className="text-2xl font-display mb-2">All clear — nothing awaiting review</p>
+          <p className="text-sm font-mono text-muted-foreground max-w-md">
+            High-confidence updates auto-commit silently. We&apos;ll surface anything that needs your judgment here.
           </p>
         </div>
       )}

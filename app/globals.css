@@ -203,4 +203,23 @@
     50%  { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
   }
+
+  @keyframes waveform {
+    0%, 100% { transform: scaleY(0.18); }
+    50%      { transform: scaleY(1); }
+  }
+
+  .animate-waveform {
+    transform-origin: center;
+    animation: waveform 1s ease-in-out infinite;
+  }
+
+  @keyframes thinking-dot {
+    0%, 80%, 100% { opacity: 0.2; transform: scale(0.7); }
+    40%           { opacity: 1; transform: scale(1); }
+  }
+
+  .animate-thinking-dot {
+    animation: thinking-dot 1.2s ease-in-out infinite;
+  }
 }
