@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Clock } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { SentimentTag } from "@/components/app/sentiment-tag";
 import { clients, formatBalance } from "@/lib/mock-data";
@@ -43,18 +43,21 @@ export default function ClientsPage() {
                 Total AUM
               </p>
             </div>
-            <div className="flex items-center gap-4 text-sm font-mono">
-              <span className="flex items-center gap-2">
+            <div className="flex items-center gap-5 text-sm font-mono">
+              <span className="flex items-center gap-2" title="Engaged">
                 <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                {counts.green}
+                <span className="text-muted-foreground">Engaged</span>
+                <span className="tabular-nums">{counts.green}</span>
               </span>
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-2" title="Cooling">
                 <span className="w-2 h-2 rounded-full bg-amber-400" />
-                {counts.amber}
+                <span className="text-muted-foreground">Cooling</span>
+                <span className="tabular-nums">{counts.amber}</span>
               </span>
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-2" title="Going cold">
                 <span className="w-2 h-2 rounded-full bg-red-400" />
-                {counts.red}
+                <span className="text-muted-foreground">Going cold</span>
+                <span className="tabular-nums">{counts.red}</span>
               </span>
             </div>
           </div>
@@ -74,7 +77,13 @@ export default function ClientsPage() {
               <Link
                 key={client.id}
                 href={`/clients/${client.id}`}
-                className="group grid grid-cols-2 md:grid-cols-12 gap-4 px-6 py-5 items-center hover:bg-foreground/[0.03] transition-colors"
+                className={`group relative grid grid-cols-2 md:grid-cols-12 gap-4 px-6 py-5 items-center transition-colors border-l-2 ${
+                  client.sentiment === "red"
+                    ? "border-l-red-400/60 bg-red-400/[0.035] hover:bg-red-400/[0.07]"
+                    : client.sentiment === "amber"
+                    ? "border-l-amber-400/50 bg-amber-400/[0.025] hover:bg-amber-400/[0.05]"
+                    : "border-l-transparent hover:bg-foreground/[0.03]"
+                }`}
               >
                 <div className="col-span-2 md:col-span-5">
                   <p className="text-base font-medium flex items-center gap-2">
@@ -100,7 +109,18 @@ export default function ClientsPage() {
                 </div>
 
                 <div className="md:col-span-2 md:text-right">
-                  <p className="text-sm font-mono text-muted-foreground">
+                  <p
+                    className={`text-sm font-mono inline-flex items-center gap-1.5 md:justify-end ${
+                      client.sentiment === "red"
+                        ? "text-red-300"
+                        : client.sentiment === "amber"
+                        ? "text-amber-300"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {client.sentiment === "red" && (
+                      <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+                    )}
                     {client.lastContact}
                   </p>
                 </div>
