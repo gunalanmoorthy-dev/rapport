@@ -130,9 +130,20 @@ export function HeroSection() {
           playsInline
           aria-hidden="true"
           className="w-full h-full object-cover object-center opacity-80"
+          // Shift the pink tree to a cool, desaturated teal-green (financial-terminal tone).
+          style={{ filter: "hue-rotate(205deg) saturate(0.6) brightness(0.95)" }}
         >
           <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/bg-hero-0BnFGdr81Ifnj3WbBZoNt1KE4D5DMT.mp4" type="video/mp4" />
         </video>
+        {/* Teal ambient glow to match the recolored tree */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(55% 55% at 72% 48%, rgba(45,140,125,0.20), transparent 70%)",
+          }}
+        />
         {/* Subtle overlay to ensure text readability on the left */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60" />

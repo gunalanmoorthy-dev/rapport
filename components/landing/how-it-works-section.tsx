@@ -5,39 +5,21 @@ import { useEffect, useRef, useState } from "react";
 const steps = [
   {
     number: "01",
-    title: "Define",
-    subtitle: "your agent",
-    description: "Describe what your agent should do. Set its capabilities, constraints, and goals in natural language or code.",
-    code: `const researcher = new Agent({
-  role: 'Research Analyst',
-  capabilities: ['web', 'docs', 'api'],
-  memory: true,
-  autonomy: 'full'
-})`,
+    title: "Talk",
+    subtitle: "for a minute",
+    description: "Record a 60-second brief after your meeting. Speak naturally — names, amounts, follow-ups. Rapport transcribes it into clean text.",
   },
   {
     number: "02",
-    title: "Assign",
-    subtitle: "the task",
-    description: "Give your agent a mission. It breaks down complex tasks into steps and executes them autonomously.",
-    code: `await researcher.execute({
-  task: 'Analyze competitor pricing',
-  sources: ['public-data', 'news'],
-  output: 'structured-report',
-  deadline: '2h'
-})`,
+    title: "Verify",
+    subtitle: "in code",
+    description: "Rapport extracts the intent, then recomputes every figure against the client's real balance in plain code. The AI never does the math.",
   },
   {
     number: "03",
-    title: "Monitor",
-    subtitle: "& scale",
-    description: "Track progress in real-time. Spin up more agents as needed. Pay only for compute used.",
-    code: `optimus.dashboard({
-  agents: [researcher],
-  metrics: ['tasks', 'latency', 'cost'],
-  alerts: true
-})
-// 847 tasks completed today`,
+    title: "Commit",
+    subtitle: "or review",
+    description: "High-confidence, math-valid changes commit automatically. Anything uncertain routes to Staging for your one-tap approval.",
   },
 ];
 
@@ -88,9 +70,9 @@ export function HowItWorksSection() {
             <h2 className={`text-6xl md:text-7xl lg:text-[128px] font-display tracking-tight leading-[0.85] transition-all duration-1000 delay-100 ${
               isVisible ? "translate-y-0 opacity-100" : "translate-y-16 opacity-0"
             }`}>
-              <span className="block">Define.</span>
-              <span className="block text-white/30">Deploy.</span>
-              <span className="block text-white/10">Scale.</span>
+              <span className="block">Talk.</span>
+              <span className="block text-white/30">Verify.</span>
+              <span className="block text-white/10">Commit.</span>
             </h2>
           </div>
 
@@ -103,6 +85,7 @@ export function HowItWorksSection() {
               alt=""
               aria-hidden="true"
               className="absolute bottom-0 left-0 w-full h-full object-contain object-bottom"
+              style={{ filter: "hue-rotate(205deg) saturate(0.6) brightness(0.95)" }}
             />
             {/* Fade sur le bord gauche */}
             <div className="absolute inset-0 bg-gradient-to-r from-[oklch(0.09_0.01_260)] via-transparent to-transparent pointer-events-none" />

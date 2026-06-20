@@ -2,30 +2,27 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const features = [
-  {
-    number: "01",
-    title: "Autonomous Execution",
-    description: "Deploy AI agents that work independently. They analyze, decide, and execute complex multi-step tasks without human intervention.",
-    stats: { value: "99.7%", label: "task completion" },
-  },
+const pillars = [
   {
     number: "02",
-    title: "Distributed Computing",
-    description: "Offload compute-heavy tasks to our global network. Your agents run on optimized infrastructure across 50+ regions worldwide.",
-    stats: { value: "50+", label: "global regions" },
+    title: "Math verified in code, never by AI",
+    description:
+      "The model only extracts what you said — it never does arithmetic. Every figure is recomputed and checked in plain TypeScript, so an overspend can never slip through.",
+    stat: { value: "0", label: "figures invented by AI" },
   },
   {
     number: "03",
-    title: "Multi-Agent Orchestration",
-    description: "Coordinate teams of specialized agents. They communicate, delegate, and collaborate to solve complex problems together.",
-    stats: { value: "1000x", label: "parallel execution" },
+    title: "A confidence-tiered review queue",
+    description:
+      "High-confidence updates commit automatically. Anything uncertain waits in Staging as a clean before/after diff for your sign-off — nothing changes without proof.",
+    stat: { value: "≥90%", label: "auto-commit threshold" },
   },
   {
     number: "04",
-    title: "Secure Sandboxing",
-    description: "Each agent runs in isolated environments. Full audit trails, encrypted execution, and zero data leakage between tasks.",
-    stats: { value: "0", label: "data breaches" },
+    title: "Zero client-facing AI",
+    description:
+      "The AI never speaks to your clients. It works silently in the back office; the relationship — and every final decision — stays entirely yours.",
+    stat: { value: "0", label: "client-facing AI" },
   },
 ];
 
@@ -130,7 +127,6 @@ function ParticleVisualization() {
 
 export function FeaturesSection() {
   const [isVisible, setIsVisible] = useState(false);
-  const [activeFeature, setActiveFeature] = useState(0);
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -158,23 +154,24 @@ export function FeaturesSection() {
             <div className="lg:col-span-7">
               <span className="inline-flex items-center gap-3 text-sm font-mono text-muted-foreground mb-6">
                 <span className="w-12 h-px bg-foreground/30" />
-                Capabilities
+                How Rapport works
               </span>
               <h2
                 className={`text-6xl md:text-7xl lg:text-[128px] font-display tracking-tight leading-[0.9] transition-all duration-1000 ${
                   isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
                 }`}
               >
-                Intelligent
+                Talk once.
                 <br />
-                <span className="text-muted-foreground">workers.</span>
+                <span className="text-muted-foreground">Verified after.</span>
               </h2>
             </div>
             <div className="lg:col-span-5 lg:pb-4">
               <p className={`text-xl text-muted-foreground leading-relaxed transition-all duration-1000 delay-200 ${
                 isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
               }`}>
-                Deploy autonomous AI agents that execute complex tasks across distributed infrastructure. No supervision required.
+                A 60-second voice note becomes CRM updates, compliance logs, and portfolio
+                moves — every number checked in code before anything commits.
               </p>
             </div>
           </div>
@@ -182,27 +179,30 @@ export function FeaturesSection() {
 
         {/* Bento Grid Layout */}
         <div className="grid lg:grid-cols-12 gap-4 lg:gap-6">
-          {/* Large feature card */}
-          <div 
+          {/* Large feature card — the Echo */}
+          <div
             className={`lg:col-span-12 relative bg-black border border-foreground/10 min-h-[500px] overflow-hidden group transition-all duration-700 flex ${
               isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
             }`}
-            onMouseEnter={() => setActiveFeature(0)}
           >
             {/* Left: text content */}
             <div className="relative flex-1 p-8 lg:p-12 bg-black">
               <ParticleVisualization />
               <div className="relative z-10">
-                <span className="font-mono text-sm text-muted-foreground">{features[0].number}</span>
+                <span className="font-mono text-sm text-muted-foreground">01</span>
                 <h3 className="text-3xl lg:text-4xl font-display mt-4 mb-6 group-hover:translate-x-2 transition-transform duration-500">
-                  {features[0].title}
+                  The 60-second Echo
                 </h3>
                 <p className="text-lg text-muted-foreground leading-relaxed max-w-md mb-8">
-                  {features[0].description}
+                  Talk for a minute after a client meeting. Rapport transcribes the brief,
+                  extracts the intent, and writes the back-office — so you stay with your
+                  client, not your keyboard.
                 </p>
                 <div>
-                  <span className="text-5xl lg:text-6xl font-display">{features[0].stats.value}</span>
-                  <span className="block text-sm text-muted-foreground font-mono mt-2">{features[0].stats.label}</span>
+                  <span className="text-5xl lg:text-6xl font-display">60s</span>
+                  <span className="block text-sm text-muted-foreground font-mono mt-2">
+                    to a finished back-office
+                  </span>
                 </div>
               </div>
             </div>
@@ -214,12 +214,39 @@ export function FeaturesSection() {
                 alt=""
                 aria-hidden="true"
                 className="absolute inset-0 w-full h-full object-cover object-center"
-                style={{ transform: "scaleX(-1)" }}
+                style={{ transform: "scaleX(-1)", filter: "hue-rotate(205deg) saturate(0.6) brightness(0.95)" }}
               />
               {/* Fade left edge into black */}
               <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent" />
             </div>
           </div>
+
+          {/* Three pillars */}
+          {pillars.map((pillar, index) => (
+            <div
+              key={pillar.number}
+              className={`lg:col-span-4 relative bg-black border border-foreground/10 p-8 lg:p-10 flex flex-col justify-between min-h-[340px] group transition-all duration-700 ${
+                isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+              }`}
+              style={{ transitionDelay: `${(index + 1) * 100}ms` }}
+            >
+              <div>
+                <span className="font-mono text-sm text-muted-foreground">{pillar.number}</span>
+                <h3 className="text-2xl lg:text-3xl font-display mt-4 mb-5 group-hover:translate-x-1 transition-transform duration-500">
+                  {pillar.title}
+                </h3>
+                <p className="text-base text-muted-foreground leading-relaxed">
+                  {pillar.description}
+                </p>
+              </div>
+              <div className="mt-8">
+                <span className="text-4xl lg:text-5xl font-display">{pillar.stat.value}</span>
+                <span className="block text-sm text-muted-foreground font-mono mt-2">
+                  {pillar.stat.label}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>

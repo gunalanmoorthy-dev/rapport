@@ -5,16 +5,16 @@ import { useEffect, useRef } from "react";
 
 const footerLinks = {
   Product: [
-    { name: "Agent capabilities", href: "#features" },
-    { name: "How it works", href: "#how-it-works" },
-    { name: "Pricing", href: "#pricing" },
-    { name: "Integrations", href: "#integrations" },
+    { name: "How it works", href: "#features" },
+    { name: "Echo", href: "/echo" },
+    { name: "Clients", href: "/clients" },
+    { name: "Staging", href: "/staging" },
   ],
-  Developers: [
-    { name: "Documentation", href: "#developers" },
-    { name: "Agent SDK", href: "#" },
-    { name: "API Reference", href: "#developers" },
-    { name: "Status", href: "#" },
+  Platform: [
+    { name: "Morning brief", href: "/digest" },
+    { name: "Vitality", href: "/vitality" },
+    { name: "Compliance", href: "/compliance" },
+    { name: "Audit trail", href: "/audit" },
   ],
   Company: [
     { name: "About", href: "#" },
