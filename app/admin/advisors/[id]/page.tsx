@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { ArrowLeft, Bot, Lock, Mic, User } from "lucide-react";
+import { ArrowLeft, BookOpen, Bot, Lock, Mic, StickyNote, User } from "lucide-react";
 import { AdminShell } from "@/components/app/admin-shell";
 import { AdminAddActivity } from "@/components/app/admin-add-activity";
 import { SentimentTag } from "@/components/app/sentiment-tag";
@@ -22,6 +22,11 @@ import { tallyCpd } from "@/lib/cpd";
 import { relativeFromNow, formatDateTime, householdLabel } from "@/lib/display";
 
 export const dynamic = "force-dynamic";
+
+const LOCKED_AREAS = [
+  { name: "Notes", icon: StickyNote },
+  { name: "Library", icon: BookOpen },
+] as const;
 
 export async function generateMetadata({
   params,
@@ -90,6 +95,25 @@ export default async function AdminAdvisorPage({
               <p className="text-3xl font-display tabular-nums">{clients.length}</p>
               <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground mt-1">clients</p>
             </div>
+          </div>
+        </div>
+
+        {/* Locked areas — private to the advisor */}
+        <div className="mb-14">
+          <h2 className={sectionLabel}>Private to advisor · locked</h2>
+          <div className="grid grid-cols-2 gap-3">
+            {LOCKED_AREAS.map(({ name, icon: Icon }) => (
+              <div
+                key={name}
+                aria-disabled="true"
+                title={`${name} is private to the advisor`}
+                className="opacity-50 cursor-not-allowed select-none flex items-center gap-3 border border-foreground/10 bg-foreground/[0.02] rounded-md px-5 py-4"
+              >
+                <Icon className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm flex-1">{name}</span>
+                <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+              </div>
+            ))}
           </div>
         </div>
 
