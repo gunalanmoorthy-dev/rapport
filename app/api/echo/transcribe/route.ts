@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { openai } from "@/lib/openai";
+import { genai } from "@/lib/gemini";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -16,12 +16,22 @@ export async function POST(req: Request) {
       );
     }
 
-    const transcription = await openai.audio.transcriptions.create({
-      file: audio,
-      model: "whisper-1",
+    // Gemini has no Whisper endpoint — send the audio inline (base64) to a
+    // multimodal model and ask for a verbatim transcript. Forward the blob's
+    // own mime type so the model decodes the correct container.
+    const base64 = Buffer.from(await audio.arrayBuffer()).toString("base64");
+    const mimeType = audio.type || "audio/webm";
+
+    const response = await genai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        { text: "Transcribe this audio verbatim. Return only the transcript text." },
+        { inlineData: { mimeType, data: base64 } },
+      ],
     });
 
-    return NextResponse.json({ transcript: transcription.text });
+    const transcript = (response.text ?? "").trim();
+    return NextResponse.json({ transcript });
   } catch (err) {
     console.error("transcribe error", err);
     return NextResponse.json(
