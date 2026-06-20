@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AppShell } from "@/components/app/app-shell";
 import { ComplianceLog, type ActivityView } from "@/components/app/compliance-log";
 import { getActivities } from "@/lib/queries";
+import { requireAdvisorId } from "@/lib/auth";
 import { formatDateTime } from "@/lib/display";
 
 export const metadata: Metadata = {
@@ -12,7 +13,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function CompliancePage() {
-  const activities = await getActivities();
+  const advisorId = await requireAdvisorId();
+  const activities = await getActivities(advisorId);
   const now = Date.now();
 
   const items: ActivityView[] = activities.map((a) => {

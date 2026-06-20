@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { activities } from "@/db/schema";
-import { DEMO_ADVISOR_ID } from "@/lib/constants";
+import { getAdvisorId } from "@/lib/auth";
 import { isUuid } from "@/lib/queries";
 
 export const runtime = "nodejs";
@@ -24,13 +24,17 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const advisorId = await getAdvisorId();
+    if (!advisorId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const { id } = await params;
     if (!isUuid(id)) {
       return NextResponse.json({ error: "Invalid activity id." }, { status: 400 });
     }
     const [deleted] = await db
       .delete(activities)
-      .where(and(eq(activities.id, id), eq(activities.advisorId, DEMO_ADVISOR_ID)))
+      .where(and(eq(activities.id, id), eq(activities.advisorId, advisorId)))
       .returning({ id: activities.id });
 
     if (!deleted) {

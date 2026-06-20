@@ -28,11 +28,10 @@ Rapport operates entirely in the **background** — it's an operational backend,
 ## Technologies used
 
 - **Frontend:** Next.js (App Router), TypeScript, Tailwind — deployed on Vercel
-- **Database:** Neon Postgres (Drizzle ORM)
+- **Database:** Neon Postgres (Drizzle ORM) 
 - **AI:** Google Gemini (transcription + structured extraction)
 
-## Challenges and approach
-
+## Problems
 The hard problem in Rapport isn't transcription — it's **trust**. An advisor handling real client money cannot accept a system that might invent a balance or approve an invalid trade. So the central design challenge was: *how do we use a language model without ever letting it be the source of truth for a number?*
 
 We solved it by drawing a hard architectural boundary between **interpretation** (the model) and **decision** (deterministic code):
@@ -75,7 +74,19 @@ Create a `.env.local` file in the project root:
 ```
 DATABASE_URL=your-neon-pooled-connection-string
 GEMINI_API_KEY=your-gemini-api-key
+AUTH_SECRET=any-long-random-string   # signs session cookies
 ```
+
+### Signing in
+
+Rapport is multi-advisor: each advisor signs in with a **work ID + password** and
+only ever sees their own clients (tenant isolation is enforced in every query).
+Accounts are provisioned by the seed — the demo credentials are:
+
+| Work ID | Password    | Advisor      | Clients |
+| ------- | ----------- | ------------ | ------- |
+| ADV-001 | rapport2026 | Alex Donovan | 6       |
+| ADV-002 | rapport2026 | Jordan Avery | 2       |
 
 ### 3. Set up the database
 
@@ -98,7 +109,7 @@ Open [http://localhost:3000](http://localhost:3000). Go to `/echo`, record a bri
 
 ### 5. Deploy
 
-Push to `main` — Vercel auto-deploys. Set `DATABASE_URL` and `GEMINI_API_KEY` in your Vercel project's Environment Variables (all environments), then redeploy.
+Push to `main` — Vercel auto-deploys. Set `DATABASE_URL`, `GEMINI_API_KEY`, and `AUTH_SECRET` in your Vercel project's Environment Variables (all environments), then redeploy.
 
 ## Project structure
 

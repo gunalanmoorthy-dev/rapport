@@ -6,7 +6,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { activities } from "@/db/schema";
-import { DEMO_ADVISOR_ID } from "@/lib/constants";
+import { getAdvisorId } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -26,6 +26,10 @@ type CreateBody = {
  */
 export async function POST(req: Request) {
   try {
+    const advisorId = await getAdvisorId();
+    if (!advisorId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const body = (await req.json()) as CreateBody;
     const title = body.title?.trim();
     if (!title) {
@@ -44,7 +48,7 @@ export async function POST(req: Request) {
     const [activity] = await db
       .insert(activities)
       .values({
-        advisorId: DEMO_ADVISOR_ID,
+        advisorId,
         title,
         category: body.category?.trim() || null,
         scheduledAt,

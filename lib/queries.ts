@@ -1,26 +1,25 @@
 /**
  * Typed data-access layer for server components and route handlers.
  *
- * Every query is scoped to the single demo advisor (see {@link DEMO_ADVISOR_ID})
- * — this is the only place tenant scoping is enforced, so always go through these
- * helpers rather than querying tables directly from a page.
+ * Every client/echo/activity query takes an `advisorId` and filters by it — that
+ * is the tenant-isolation boundary now that the app is multi-advisor. Callers
+ * resolve the current advisor via `lib/auth` ({@link requireAdvisorId} in pages,
+ * {@link getAdvisorId} in routes) and pass it in.
  *
  * @module lib/queries
  */
 import { and, asc, desc, eq, max } from "drizzle-orm";
 import { db } from "@/db/client";
-import { activities, clients, echoes, portfolioMoves } from "@/db/schema";
-import type { Activity, Client, Echo, PortfolioMove } from "@/db/schema";
-import { DEMO_ADVISOR_ID } from "./constants";
+import { activities, advisors, clients, echoes, portfolioMoves } from "@/db/schema";
+import type { Activity, Advisor, Client, Echo, PortfolioMove } from "@/db/schema";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Whether a string is a well-formed UUID.
- *
- * Route params arrive as arbitrary strings; passing a non-UUID straight into a
- * Postgres `uuid` comparison throws. Callers use this to fail fast (404) instead.
+ * Whether a string is a well-formed UUID. Route params arrive as arbitrary
+ * strings; passing a non-UUID into a Postgres `uuid` comparison throws, so
+ * callers use this to fail fast (404) instead.
  *
  * @param value - The candidate id, e.g. a dynamic route segment.
  * @returns `true` if `value` matches the UUID format.
@@ -30,30 +29,59 @@ export function isUuid(value: string): boolean {
 }
 
 /**
- * All of the advisor's clients, richest first (for the Clients table + totals).
+ * Look up an advisor by their login work id (includes the password hash).
  *
+ * @param workId - The advisor's work id from the login form.
+ * @returns The advisor row, or `null`.
+ */
+export async function getAdvisorByWorkId(workId: string): Promise<Advisor | null> {
+  const rows = await db
+    .select()
+    .from(advisors)
+    .where(eq(advisors.workId, workId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/**
+ * Look up an advisor by id (for the session/greeting).
+ *
+ * @param id - Advisor UUID.
+ * @returns The advisor row, or `null`.
+ */
+export async function getAdvisorById(id: string): Promise<Advisor | null> {
+  if (!isUuid(id)) return null;
+  const rows = await db.select().from(advisors).where(eq(advisors.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+/**
+ * All of an advisor's clients, richest first.
+ *
+ * @param advisorId - The signed-in advisor's id.
  * @returns Client rows ordered by `totalBalanceCents` descending.
  */
-export async function getClients(): Promise<Client[]> {
+export async function getClients(advisorId: string): Promise<Client[]> {
   return db
     .select()
     .from(clients)
-    .where(eq(clients.advisorId, DEMO_ADVISOR_ID))
+    .where(eq(clients.advisorId, advisorId))
     .orderBy(desc(clients.totalBalanceCents));
 }
 
 /**
- * A single client owned by the demo advisor.
+ * A single client owned by the given advisor.
  *
- * @param id - Client UUID (typically a route param).
- * @returns The client, or `null` if the id is malformed or not owned by the advisor.
+ * @param id - Client UUID.
+ * @param advisorId - The signed-in advisor's id (ownership check).
+ * @returns The client, or `null` if malformed or not owned by the advisor.
  */
-export async function getClientById(id: string): Promise<Client | null> {
+export async function getClientById(id: string, advisorId: string): Promise<Client | null> {
   if (!isUuid(id)) return null;
   const rows = await db
     .select()
     .from(clients)
-    .where(and(eq(clients.id, id), eq(clients.advisorId, DEMO_ADVISOR_ID)))
+    .where(and(eq(clients.id, id), eq(clients.advisorId, advisorId)))
     .limit(1);
   return rows[0] ?? null;
 }
@@ -61,7 +89,7 @@ export async function getClientById(id: string): Promise<Client | null> {
 /**
  * Committed portfolio moves for a client, newest first.
  *
- * @param clientId - Client UUID. Assumed already validated/owned by the advisor.
+ * @param clientId - Client UUID (caller has already verified ownership).
  * @returns Portfolio move rows ordered by `createdAt` descending.
  */
 export async function getClientMoves(clientId: string): Promise<PortfolioMove[]> {
@@ -75,7 +103,7 @@ export async function getClientMoves(clientId: string): Promise<PortfolioMove[]>
 /**
  * All echoes recorded against a client (any status), newest first.
  *
- * @param clientId - Client UUID. Assumed already validated/owned by the advisor.
+ * @param clientId - Client UUID (caller has already verified ownership).
  * @returns Echo rows ordered by `createdAt` descending.
  */
 export async function getClientEchoes(clientId: string): Promise<Echo[]> {
@@ -89,17 +117,14 @@ export async function getClientEchoes(clientId: string): Promise<Echo[]> {
 /**
  * Most recent echo timestamp per client, for "last contact" columns.
  *
- * Returned as a Map so callers can look up by client id in O(1) while rendering
- * a list, instead of issuing one query per row.
- *
- * @returns Map of `clientId` → most recent echo `Date`. Clients with no echoes
- *          are absent from the map (callers treat that as "no contact yet").
+ * @param advisorId - The signed-in advisor's id.
+ * @returns Map of `clientId` → most recent echo `Date` (clients with no echoes are absent).
  */
-export async function getLastContactByClient(): Promise<Map<string, Date>> {
+export async function getLastContactByClient(advisorId: string): Promise<Map<string, Date>> {
   const rows = await db
     .select({ clientId: echoes.clientId, last: max(echoes.createdAt) })
     .from(echoes)
-    .where(eq(echoes.advisorId, DEMO_ADVISOR_ID))
+    .where(eq(echoes.advisorId, advisorId))
     .groupBy(echoes.clientId);
 
   const map = new Map<string, Date>();
@@ -116,34 +141,31 @@ export type StagedEcho = {
 };
 
 /**
- * Echoes awaiting review (status `staged`), newest first, joined to their client.
+ * Echoes awaiting review (status `staged`) for an advisor, newest first, joined
+ * to their client. LEFT join because a staged echo may have no matched client.
  *
- * Uses a LEFT join because a staged echo may have no matched client (e.g. an
- * ambiguous brief) — the Staging UI still shows those, labelled "Unmatched".
- *
+ * @param advisorId - The signed-in advisor's id.
  * @returns Staged echoes each paired with their client row (or `null`).
  */
-export async function getStagedEchoes(): Promise<StagedEcho[]> {
-  const rows = await db
+export async function getStagedEchoes(advisorId: string): Promise<StagedEcho[]> {
+  return db
     .select({ echo: echoes, client: clients })
     .from(echoes)
     .leftJoin(clients, eq(echoes.clientId, clients.id))
-    .where(
-      and(eq(echoes.advisorId, DEMO_ADVISOR_ID), eq(echoes.status, "staged"))
-    )
+    .where(and(eq(echoes.advisorId, advisorId), eq(echoes.status, "staged")))
     .orderBy(desc(echoes.createdAt));
-  return rows;
 }
 
 /**
- * All continuing-education activities for the advisor, soonest scheduled first.
+ * An advisor's continuing-education activities, soonest scheduled first.
  *
- * @returns Activity rows ordered by `scheduledAt` ascending (nulls last).
+ * @param advisorId - The signed-in advisor's id.
+ * @returns Activity rows ordered by `scheduledAt` ascending.
  */
-export async function getActivities(): Promise<Activity[]> {
+export async function getActivities(advisorId: string): Promise<Activity[]> {
   return db
     .select()
     .from(activities)
-    .where(eq(activities.advisorId, DEMO_ADVISOR_ID))
+    .where(eq(activities.advisorId, advisorId))
     .orderBy(asc(activities.scheduledAt));
 }

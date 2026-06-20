@@ -14,7 +14,8 @@ import type { ExtractedIntent, Client } from "@/db/schema";
 import { getClients } from "@/lib/queries";
 import { extractIntent } from "@/lib/extract";
 import { verifyMove } from "@/lib/verify";
-import { AUTO_COMMIT_THRESHOLD, DEMO_ADVISOR_ID } from "@/lib/constants";
+import { getAdvisorId } from "@/lib/auth";
+import { AUTO_COMMIT_THRESHOLD } from "@/lib/constants";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -60,13 +61,18 @@ function matchClient(name: string | null, list: Client[]): Client | null {
  */
 export async function POST(req: Request) {
   try {
+    const advisorId = await getAdvisorId();
+    if (!advisorId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = (await req.json()) as { transcript?: string };
     const transcript = body.transcript?.trim();
     if (!transcript) {
       return NextResponse.json({ error: "Missing transcript." }, { status: 400 });
     }
 
-    const clientList = await getClients();
+    const clientList = await getClients(advisorId);
     const raw = await extractIntent(
       transcript,
       clientList.map((c) => c.name ?? "").filter(Boolean)
@@ -120,7 +126,7 @@ export async function POST(req: Request) {
         const [echo] = await tx
           .insert(echoes)
           .values({
-            advisorId: DEMO_ADVISOR_ID,
+            advisorId,
             clientId: matched?.id ?? null,
             transcript,
             extracted,
@@ -160,7 +166,7 @@ export async function POST(req: Request) {
     const [echo] = await db
       .insert(echoes)
       .values({
-        advisorId: DEMO_ADVISOR_ID,
+        advisorId,
         clientId: matched?.id ?? null,
         transcript,
         extracted,

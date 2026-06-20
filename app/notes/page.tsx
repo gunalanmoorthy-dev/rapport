@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AppShell } from "@/components/app/app-shell";
 import { NotesManager } from "@/components/app/notes-manager";
 import { getClients } from "@/lib/queries";
+import { requireAdvisorId } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Notes · Rapport",
@@ -11,7 +12,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function NotesPage() {
-  const clients = await getClients();
+  const advisorId = await requireAdvisorId();
+  const clients = await getClients(advisorId);
 
   return (
     <AppShell>

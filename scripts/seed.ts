@@ -1,8 +1,12 @@
 /**
- * Seed script: inserts the demo advisor and ~6 realistic clients.
+ * Seed script: two advisors (each with login credentials) and their client books.
  *
- * Idempotent — safe to re-run. It upserts the advisor (fixed id) and replaces
- * the advisor's client set each run. Run with: `pnpm run seed`.
+ * Idempotent — safe to re-run. Upserts the advisors by fixed id and replaces each
+ * advisor's clients/activities. Run with: `pnpm run seed`.
+ *
+ * Demo credentials (work id / password):
+ *   ADV-001 / rapport2026  → Alex Donovan (6 clients)
+ *   ADV-002 / rapport2026  → Jordan Avery (2 clients)
  *
  * @module scripts/seed
  */
@@ -12,15 +16,26 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 const dollars = (d: number) => Math.round(d * 100);
+const ADVISOR_2_ID = "00000000-0000-0000-0000-000000000002";
+const DEMO_PASSWORD = "rapport2026";
 
-const seedClients = [
-  { name: "Eleanor Harrington", sentiment: "green" as const, balance: dollars(14_820_000), email: "eleanor.harrington@harringtontrust.com", phone: "+1 (212) 555-0147" },
-  { name: "Marcus Okafor", sentiment: "amber" as const, balance: dollars(8_430_000), email: "marcus@okaforholdings.com", phone: "+1 (312) 555-0188" },
-  { name: "Sophie Delacroix", sentiment: "green" as const, balance: dollars(22_150_000), email: "s.delacroix@delacroixprivate.fr", phone: "+33 1 45 55 0192" },
-  { name: "Priya Venkataraman", sentiment: "green" as const, balance: dollars(41_300_000), email: "priya@venkataramanfo.com", phone: "+44 20 7555 0123" },
-  { name: "James Whitlock", sentiment: "red" as const, balance: dollars(3_120_000), email: "james.whitlock@whitlockret.com", phone: "+1 (415) 555-0166" },
-  { name: "Yuki Nakamura", sentiment: "amber" as const, balance: dollars(9_870_000), email: "yuki.nakamura@nakamuratrust.jp", phone: "+81 3 5555 0179" },
-];
+const clientsByAdvisorWorkId: Record<
+  string,
+  { name: string; sentiment: "green" | "amber" | "red"; balance: number; email: string; phone: string }[]
+> = {
+  "ADV-001": [
+    { name: "Eleanor Harrington", sentiment: "green", balance: dollars(14_820_000), email: "eleanor.harrington@harringtontrust.com", phone: "+1 (212) 555-0147" },
+    { name: "Marcus Okafor", sentiment: "amber", balance: dollars(8_430_000), email: "marcus@okaforholdings.com", phone: "+1 (312) 555-0188" },
+    { name: "Sophie Delacroix", sentiment: "green", balance: dollars(22_150_000), email: "s.delacroix@delacroixprivate.fr", phone: "+33 1 45 55 0192" },
+    { name: "Priya Venkataraman", sentiment: "green", balance: dollars(41_300_000), email: "priya@venkataramanfo.com", phone: "+44 20 7555 0123" },
+    { name: "James Whitlock", sentiment: "red", balance: dollars(3_120_000), email: "james.whitlock@whitlockret.com", phone: "+1 (415) 555-0166" },
+    { name: "Yuki Nakamura", sentiment: "amber", balance: dollars(9_870_000), email: "yuki.nakamura@nakamuratrust.jp", phone: "+81 3 5555 0179" },
+  ],
+  "ADV-002": [
+    { name: "Theresa Bennett", sentiment: "green", balance: dollars(6_540_000), email: "theresa.bennett@bennettfamily.com", phone: "+1 (646) 555-0210" },
+    { name: "Diego Marchetti", sentiment: "amber", balance: dollars(11_200_000), email: "diego@marchettiholdings.it", phone: "+39 02 5555 0231" },
+  ],
+};
 
 /** A few continuing-education activities (past + upcoming) for the Compliance log. */
 const seedActivities = [
@@ -39,34 +54,41 @@ async function main() {
   const { db, pool } = await import("../db/client");
   const { advisors, clients, activities } = await import("../db/schema");
   const { DEMO_ADVISOR_ID } = await import("../lib/constants");
+  const { hashPassword } = await import("../lib/password");
 
-  // Advisor — fixed id so the server-side constant matches the seeded row.
-  await db
-    .insert(advisors)
-    .values({
-      id: DEMO_ADVISOR_ID,
-      email: "alex@rapport.demo",
-      name: "Alex Donovan",
-      firm: "Rapport Wealth Partners",
-    })
-    .onConflictDoNothing();
+  const passwordHash = hashPassword(DEMO_PASSWORD);
 
-  // Re-runnable: clear this advisor's clients (cascades to echoes + moves) first.
-  await db.delete(clients).where(eq(clients.advisorId, DEMO_ADVISOR_ID));
+  const advisorRows = [
+    { id: DEMO_ADVISOR_ID, email: "alex@rapport.demo", name: "Alex Donovan", firm: "Rapport Wealth Partners", workId: "ADV-001" },
+    { id: ADVISOR_2_ID, email: "jordan@rapport.demo", name: "Jordan Avery", firm: "Rapport Wealth Partners", workId: "ADV-002" },
+  ];
 
-  await db.insert(clients).values(
-    seedClients.map((c) => ({
-      advisorId: DEMO_ADVISOR_ID,
-      name: c.name,
-      sentiment: c.sentiment,
-      totalBalanceCents: c.balance,
-      email: c.email,
-      phone: c.phone,
-      status: "active" as const,
-    }))
-  );
+  for (const a of advisorRows) {
+    // Upsert by id so re-runs refresh credentials (onConflictDoNothing wouldn't).
+    await db
+      .insert(advisors)
+      .values({ ...a, passwordHash })
+      .onConflictDoUpdate({
+        target: advisors.id,
+        set: { email: a.email, name: a.name, firm: a.firm, workId: a.workId, passwordHash },
+      });
 
-  // Reset + seed compliance activities.
+    // Re-runnable: clear this advisor's clients (cascades to echoes + moves) first.
+    await db.delete(clients).where(eq(clients.advisorId, a.id));
+    await db.insert(clients).values(
+      clientsByAdvisorWorkId[a.workId].map((c) => ({
+        advisorId: a.id,
+        name: c.name,
+        sentiment: c.sentiment,
+        totalBalanceCents: c.balance,
+        email: c.email,
+        phone: c.phone,
+        status: "active" as const,
+      }))
+    );
+  }
+
+  // Compliance activities for advisor 1 only.
   await db.delete(activities).where(eq(activities.advisorId, DEMO_ADVISOR_ID));
   await db.insert(activities).values(
     seedActivities.map((a) => ({
@@ -77,14 +99,9 @@ async function main() {
     }))
   );
 
-  const inserted = await db
-    .select()
-    .from(clients)
-    .where(eq(clients.advisorId, DEMO_ADVISOR_ID));
-
-  console.log(`Seeded advisor ${DEMO_ADVISOR_ID} and ${inserted.length} clients:`);
-  for (const c of inserted) {
-    console.log(`  ${c.name} · ${c.sentiment} · $${((c.totalBalanceCents ?? 0) / 100).toLocaleString()}`);
+  for (const a of advisorRows) {
+    const rows = await db.select().from(clients).where(eq(clients.advisorId, a.id));
+    console.log(`${a.workId} (${a.name}) · password "${DEMO_PASSWORD}" · ${rows.length} clients`);
   }
 
   await pool.end();

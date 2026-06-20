@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app/app-shell";
 import { SentimentTag } from "@/components/app/sentiment-tag";
 import { formatCents } from "@/lib/mock-data";
 import { getClientById, getClientMoves, getClientEchoes } from "@/lib/queries";
+import { getAdvisorId, requireAdvisorId } from "@/lib/auth";
 import {
   householdLabel,
   sentimentNote,
@@ -22,7 +23,8 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const client = await getClientById(id);
+  const advisorId = await getAdvisorId();
+  const client = advisorId ? await getClientById(id, advisorId) : null;
   return {
     title: client ? `${client.name} · Rapport` : "Client · Rapport",
   };
@@ -48,7 +50,8 @@ export default async function ClientDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const client = await getClientById(id);
+  const advisorId = await requireAdvisorId();
+  const client = await getClientById(id, advisorId);
   if (!client) notFound();
 
   const [moves, echoHistory] = await Promise.all([

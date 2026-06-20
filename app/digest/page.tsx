@@ -4,7 +4,8 @@ import { ArrowUpRight, Mic, Clock, CheckCircle2, Snowflake } from "lucide-react"
 import { AppShell } from "@/components/app/app-shell";
 import { SentimentTag } from "@/components/app/sentiment-tag";
 import { digest, formatCents } from "@/lib/mock-data";
-import { getClients, getStagedEchoes, getLastContactByClient } from "@/lib/queries";
+import { getClients, getStagedEchoes, getLastContactByClient, getAdvisorById } from "@/lib/queries";
+import { requireAdvisorId } from "@/lib/auth";
 import { sentimentNote, relativeFromNow } from "@/lib/display";
 
 export const metadata: Metadata = {
@@ -15,11 +16,15 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function DigestPage() {
-  const [clients, staged, lastContact] = await Promise.all([
-    getClients(),
-    getStagedEchoes(),
-    getLastContactByClient(),
+  const advisorId = await requireAdvisorId();
+  const [advisor, clients, staged, lastContact] = await Promise.all([
+    getAdvisorById(advisorId),
+    getClients(advisorId),
+    getStagedEchoes(advisorId),
+    getLastContactByClient(advisorId),
   ]);
+
+  const firstName = advisor?.name?.split(" ")[0] ?? "there";
 
   const goingCold = clients
     .filter((c) => c.sentiment !== "green")
@@ -36,7 +41,7 @@ export default async function DigestPage() {
             {digest.date}
           </span>
           <h1 className="text-5xl lg:text-6xl font-display tracking-tight">
-            {digest.greeting}.
+            Good morning, {firstName}.
           </h1>
           <p className="text-lg text-muted-foreground mt-4 max-w-xl leading-relaxed">
             While you were out, Rapport committed{" "}

@@ -50,6 +50,9 @@ export const advisors = pgTable("advisors", {
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   firm: text("firm"),
+  // Login credentials: a human-friendly work id + a scrypt password hash.
+  workId: text("work_id").unique(),
+  passwordHash: text("password_hash"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

@@ -10,6 +10,10 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 const STATEMENTS = [
+  // Advisor login: a human work id + a scrypt password hash.
+  `ALTER TABLE advisors ADD COLUMN IF NOT EXISTS work_id text`,
+  `ALTER TABLE advisors ADD COLUMN IF NOT EXISTS password_hash text`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS advisors_work_id_idx ON advisors(work_id)`,
   `ALTER TABLE clients ADD COLUMN IF NOT EXISTS email text`,
   `ALTER TABLE clients ADD COLUMN IF NOT EXISTS phone text`,
   `ALTER TABLE clients ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active'`,

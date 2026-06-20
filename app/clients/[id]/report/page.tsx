@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { PrintButton } from "@/components/app/print-button";
 import { formatCents } from "@/lib/mock-data";
 import { getClientById, getClientMoves, getClientEchoes } from "@/lib/queries";
+import { getAdvisorId, requireAdvisorId } from "@/lib/auth";
 import { householdLabel, sentimentNote, relativeFromNow, formatDateTime } from "@/lib/display";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,8 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const client = await getClientById(id);
+  const advisorId = await getAdvisorId();
+  const client = advisorId ? await getClientById(id, advisorId) : null;
   return {
     title: client ? `${client.name} — Advisor Brief · Rapport` : "Advisor Brief · Rapport",
   };
@@ -33,7 +35,8 @@ export default async function ClientReportPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const client = await getClientById(id);
+  const advisorId = await requireAdvisorId();
+  const client = await getClientById(id, advisorId);
   if (!client) notFound();
 
   const [moves, echoHistory] = await Promise.all([

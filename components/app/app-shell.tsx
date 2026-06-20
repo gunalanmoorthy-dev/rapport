@@ -6,8 +6,10 @@
  *
  * @module components/app/app-shell
  */
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
 
 const appLinks = [
   { name: "Brief", href: "/digest" },
@@ -19,8 +21,39 @@ const appLinks = [
   { name: "Audit", href: "/audit" },
 ];
 
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .map((p) => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [advisor, setAdvisor] = useState<{ name: string; workId: string | null } | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (active && d) setAdvisor({ name: d.name, workId: d.workId });
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const logout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.replace("/login");
+    router.refresh();
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -58,9 +91,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <span className="w-2 h-2 rounded-full bg-[#eca8d6] animate-pulse" />
               0 client-facing AI
             </span>
+            {advisor && (
+              <span className="hidden md:flex flex-col items-end leading-tight">
+                <span className="text-xs font-medium">{advisor.name}</span>
+                {advisor.workId && (
+                  <span className="text-[10px] font-mono text-muted-foreground">{advisor.workId}</span>
+                )}
+              </span>
+            )}
             <div className="w-8 h-8 rounded-full bg-foreground/10 border border-foreground/15 flex items-center justify-center text-xs font-mono">
-              AD
+              {advisor ? initials(advisor.name) : "—"}
             </div>
+            <button
+              type="button"
+              onClick={logout}
+              title="Sign out"
+              className="w-8 h-8 rounded-full flex items-center justify-center border border-foreground/15 text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </header>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AppShell } from "@/components/app/app-shell";
 import { StagingLog, type StagingGroup } from "@/components/app/staging-log";
 import { getStagedEchoes } from "@/lib/queries";
+import { requireAdvisorId } from "@/lib/auth";
 import { formatDateTime } from "@/lib/display";
 
 export const metadata: Metadata = {
@@ -12,7 +13,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function StagingPage() {
-  const staged = await getStagedEchoes();
+  const advisorId = await requireAdvisorId();
+  const staged = await getStagedEchoes(advisorId);
 
   // Group staged echoes by client (unmatched briefs go in their own bucket).
   const groups = new Map<string, StagingGroup>();

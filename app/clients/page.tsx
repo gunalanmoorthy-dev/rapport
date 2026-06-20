@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AppShell } from "@/components/app/app-shell";
 import { ClientsManager } from "@/components/app/clients-manager";
 import { getClients, getLastContactByClient } from "@/lib/queries";
+import { requireAdvisorId } from "@/lib/auth";
 import { relativeFromNow } from "@/lib/display";
 
 export const metadata: Metadata = {
@@ -12,9 +13,10 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function ClientsPage() {
+  const advisorId = await requireAdvisorId();
   const [clients, lastContact] = await Promise.all([
-    getClients(),
-    getLastContactByClient(),
+    getClients(advisorId),
+    getLastContactByClient(advisorId),
   ]);
 
   // Precompute "last contact" labels into a plain object for the client component.
