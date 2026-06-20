@@ -26,7 +26,6 @@ export const metadata: Metadata = {
   title: "Rapport - The advisor's silent back-office",
   description:
     'Rapport turns a 60-second voice note into verified CRM updates, compliance logs, and portfolio reconciliation — so you stay with your client, not your keyboard.',
-  generator: 'v0.app',
 }
 
 export default function RootLayout({

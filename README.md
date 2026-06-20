@@ -141,5 +141,4 @@ components/     UI components (in-app + landing)
 
 ## License
 
-Released under the [MIT License](LICENSE). Some UI primitives under `components/ui`
-were scaffolded by [v0](https://v0.app) and remain under their original terms.
+Released under the [MIT License](LICENSE).
