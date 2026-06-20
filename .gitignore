@@ -21,3 +21,4 @@ next-env.d.ts
 
 # pnpm-generated build-approval stub
 pnpm-workspace.yaml
+.vercel
