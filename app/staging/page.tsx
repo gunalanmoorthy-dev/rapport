@@ -1,13 +1,62 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app/app-shell";
-import { StagingQueue } from "@/components/app/staging-queue";
+import { StagingQueue, type StagedItem } from "@/components/app/staging-queue";
+import { getStagedEchoes } from "@/lib/queries";
+import { formatCents } from "@/lib/mock-data";
+import { formatDateTime } from "@/lib/display";
 
 export const metadata: Metadata = {
   title: "Staging · Rapport",
   description: "Review pending low-confidence changes before they commit.",
 };
 
-export default function StagingPage() {
+export const dynamic = "force-dynamic";
+
+export default async function StagingPage() {
+  const staged = await getStagedEchoes();
+
+  const items: StagedItem[] = staged.map(({ echo, client }) => {
+    const ex = echo.extracted;
+    const move = ex?.move ?? null;
+    const confidence = Number(echo.confidence ?? 0);
+    const clientId = client?.id ?? ex?.matchedClientId ?? null;
+    const clientName = client?.name ?? ex?.matchedClientName ?? "Unmatched client";
+    const source = `Echo · ${formatDateTime(echo.createdAt ? new Date(echo.createdAt) : null)}`;
+
+    if (move) {
+      const before = ex?.balanceBeforeCents ?? client?.totalBalanceCents ?? 0;
+      const attemptedAfter =
+        move.direction === "in" ? before + move.amountCents : before - move.amountCents;
+      return {
+        echoId: echo.id,
+        clientId,
+        clientName,
+        field: move.direction === "in" ? "Inflow" : "Outflow",
+        category: "Portfolio",
+        confidence,
+        source,
+        before: formatCents(before),
+        after: formatCents(attemptedAfter),
+        invalid: !!ex?.invalid,
+        invalidReason: ex?.invalidReason ?? null,
+      };
+    }
+
+    return {
+      echoId: echo.id,
+      clientId,
+      clientName,
+      field: "Client note",
+      category: "CRM",
+      confidence,
+      source,
+      before: "No note on file",
+      after: ex?.summary ?? ex?.intents?.join("; ") ?? "Update",
+      invalid: false,
+      invalidReason: null,
+    };
+  });
+
   return (
     <AppShell>
       <section className="max-w-[1100px] mx-auto px-6 lg:px-12 py-16 lg:py-20">
@@ -25,7 +74,7 @@ export default function StagingPage() {
           </p>
         </div>
 
-        <StagingQueue />
+        <StagingQueue items={items} />
       </section>
     </AppShell>
   );

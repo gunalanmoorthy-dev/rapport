@@ -14,3 +14,10 @@ next.user-config.*
 node_modules
 .next/
 .DS_Store
+
+# Generated TypeScript / Next files
+next-env.d.ts
+*.tsbuildinfo
+
+# pnpm-generated build-approval stub
+pnpm-workspace.yaml

@@ -67,6 +67,11 @@ export function formatBalance(value: number) {
   }).format(value);
 }
 
+/** Money is stored as integer cents everywhere; this is the display bridge. */
+export function formatCents(cents: number) {
+  return formatBalance(cents / 100);
+}
+
 export const clients: Client[] = [
   {
     id: "harrington",

@@ -3,23 +3,28 @@ import Link from "next/link";
 import { ArrowUpRight, Mic, Clock, CheckCircle2, Snowflake } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { SentimentTag } from "@/components/app/sentiment-tag";
-import {
-  clients,
-  stagedChanges,
-  digest,
-  formatBalance,
-} from "@/lib/mock-data";
+import { digest, formatCents } from "@/lib/mock-data";
+import { getClients, getStagedEchoes, getLastContactByClient } from "@/lib/queries";
+import { sentimentNote, relativeFromNow } from "@/lib/display";
 
 export const metadata: Metadata = {
   title: "Morning Brief · Rapport",
   description: "What happened overnight, what needs you, who's going cold.",
 };
 
-export default function DigestPage() {
+export const dynamic = "force-dynamic";
+
+export default async function DigestPage() {
+  const [clients, staged, lastContact] = await Promise.all([
+    getClients(),
+    getStagedEchoes(),
+    getLastContactByClient(),
+  ]);
+
   const goingCold = clients
     .filter((c) => c.sentiment !== "green")
     .sort((a, b) => (a.sentiment === "red" ? -1 : 1));
-  const awaiting = stagedChanges.length;
+  const awaiting = staged.length;
 
   return (
     <AppShell>
@@ -143,18 +148,18 @@ export default function DigestPage() {
                       <ArrowUpRight className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-muted-foreground" />
                     </p>
                     <p className="text-xs font-mono text-muted-foreground mt-1 truncate">
-                      {client.sentimentNote}
+                      {sentimentNote(client.sentiment)}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <SentimentTag sentiment={client.sentiment} />
+                    <SentimentTag sentiment={client.sentiment ?? "green"} />
                     <p
                       className={`text-xs font-mono mt-2 inline-flex items-center gap-1.5 ${
                         client.sentiment === "red" ? "text-red-300" : "text-amber-300"
                       }`}
                     >
                       <Clock className="w-3 h-3" />
-                      {client.lastContact}
+                      {relativeFromNow(lastContact.get(client.id))}
                     </p>
                   </div>
                 </Link>
@@ -166,7 +171,7 @@ export default function DigestPage() {
                 Book at a glance
               </p>
               <p className="text-2xl font-display tabular-nums">
-                {formatBalance(clients.reduce((s, c) => s + c.balance, 0))}
+                {formatCents(clients.reduce((s, c) => s + (c.totalBalanceCents ?? 0), 0))}
               </p>
               <p className="text-xs font-mono text-muted-foreground mt-1">
                 across {clients.length} relationships
