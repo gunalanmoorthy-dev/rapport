@@ -14,7 +14,7 @@ const pillars = [
     title: "Math verified in code, never by AI",
     description:
       "The model only extracts what you said — it never does arithmetic. Every figure is recomputed and checked in plain TypeScript, so an overspend can never slip through.",
-    stat: { value: "0", label: "figures invented by AI" },
+    stat: { value: "0", label: "numbers the AI makes up — it only repeats what you said" },
   },
   {
     number: "03",
@@ -28,7 +28,7 @@ const pillars = [
     title: "Zero client-facing AI",
     description:
       "The AI never speaks to your clients. It works silently in the back office; the relationship — and every final decision — stays entirely yours.",
-    stat: { value: "0", label: "client-facing AI" },
+    stat: { value: "0", label: "messages the AI sends to your clients — ever" },
   },
 ];
 

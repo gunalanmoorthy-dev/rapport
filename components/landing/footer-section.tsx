@@ -6,7 +6,6 @@
  *
  * @module components/landing/footer-section
  */
-import { ArrowUpRight } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 const footerLinks = {
@@ -22,24 +21,7 @@ const footerLinks = {
     { name: "Compliance", href: "/compliance" },
     { name: "Audit trail", href: "/audit" },
   ],
-  Company: [
-    { name: "About", href: "#" },
-    { name: "Blog", href: "#" },
-    { name: "Careers", href: "#", badge: "Hiring" },
-    { name: "Contact", href: "#" },
-  ],
-  Legal: [
-    { name: "Privacy", href: "#" },
-    { name: "Terms", href: "#" },
-    { name: "Security", href: "#security" },
-  ],
 };
-
-const socialLinks = [
-  { name: "Twitter", href: "#" },
-  { name: "GitHub", href: "#" },
-  { name: "LinkedIn", href: "#" },
-];
 
 function AnimatedWaveCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -125,23 +107,9 @@ export function FooterSection() {
                 <span className="text-xs text-white/40 font-mono">TM</span>
               </a>
 
-              <p className="text-white/50 leading-relaxed mb-8 max-w-xs text-sm">
+              <p className="text-white/50 leading-relaxed max-w-xs text-sm">
                 The advisor&apos;s silent back-office. Turn a voice note into verified CRM updates, compliance logs, and portfolio reconciliation.
               </p>
-
-              {/* Social Links */}
-              <div className="flex gap-6">
-                {socialLinks.map((link) => (
-                  <a
-                    key={link.name}
-                    href={link.href}
-                    className="text-sm text-white/40 hover:text-white transition-colors flex items-center gap-1 group"
-                  >
-                    {link.name}
-                    <ArrowUpRight className="w-3 h-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                  </a>
-                ))}
-              </div>
             </div>
 
             {/* Link Columns */}
@@ -156,11 +124,6 @@ export function FooterSection() {
                         className="text-sm text-white/40 hover:text-white transition-colors inline-flex items-center gap-2"
                       >
                         {link.name}
-                        {"badge" in link && link.badge && (
-                          <span className="text-xs px-2 py-0.5 bg-white text-black rounded-full">
-                            {link.badge}
-                          </span>
-                        )}
                       </a>
                     </li>
                   ))}
@@ -173,7 +136,7 @@ export function FooterSection() {
         {/* Bottom Bar */}
         <div className="py-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-white/30">
-            &copy; 2025 RAPPORT. All rights reserved.
+            &copy; 2026 RAPPORT. All rights reserved.
           </p>
 
           <div className="flex items-center gap-4 text-sm text-white/30">

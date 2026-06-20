@@ -101,8 +101,8 @@ export function SecuritySection() {
               <span className="font-mono text-sm text-muted-foreground">Where the AI stops</span>
               <div className="mt-8">
                 <span className="text-7xl lg:text-8xl font-display">0</span>
-                <span className="block text-muted-foreground mt-2">
-                  client-facing AI — the model never speaks to a client
+                <span className="block text-muted-foreground mt-2 max-w-xs">
+                  messages the AI ever sends to a client — it works only in the back office, never the conversation
                 </span>
               </div>
             </div>
