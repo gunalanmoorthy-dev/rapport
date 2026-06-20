@@ -76,7 +76,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-4">
             <span className="hidden sm:flex items-center gap-2 text-xs font-mono text-muted-foreground">
               <span className="w-2 h-2 rounded-full bg-[#eca8d6] animate-pulse" />
-              read-only oversight
+              firm oversight
             </span>
             {admin && (
               <span className="hidden md:flex flex-col items-end leading-tight">

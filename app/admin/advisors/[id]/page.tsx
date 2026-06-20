@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { ArrowLeft, Bot, Lock, Mic, User } from "lucide-react";
 import { AdminShell } from "@/components/app/admin-shell";
+import { AdminAddActivity } from "@/components/app/admin-add-activity";
 import { SentimentTag } from "@/components/app/sentiment-tag";
 import { db } from "@/db/client";
 import { cpdEntries } from "@/db/schema";
@@ -77,7 +78,7 @@ export default async function AdminAdvisorPage({
               {target.workId} · {target.firm}
             </p>
             <p className="text-xs font-mono text-[#eca8d6] mt-3 inline-flex items-center gap-1.5">
-              <Lock className="w-3 h-3" /> Read-only oversight · Notes &amp; Library are private to the advisor
+              <Lock className="w-3 h-3" /> Oversight · you can log compliance here; Notes &amp; Library stay private to the advisor
             </p>
           </div>
           <div className="flex items-center gap-8 shrink-0">
@@ -162,6 +163,7 @@ export default async function AdminAdvisorPage({
               {cpd.metRequirement ? "Annual requirement met" : "CPD in progress"}
             </p>
           </div>
+          <AdminAddActivity advisorId={target.id} />
           {activities.length === 0 ? (
             <p className="text-sm font-mono text-muted-foreground/60">No activities logged.</p>
           ) : (

@@ -1,21 +1,27 @@
 "use client";
 
 /**
- * Advisor sign-in form (work id + password). Posts to /api/auth/login and, on
- * success, navigates to the `from` route (if any) or the morning brief.
+ * Sign-in form (work id + password) for both advisors and admins — the account's
+ * role decides where you land. The Advisor/Admin toggle is a convenience that
+ * sets the expected work-id format; the actual role always comes from the account.
+ *
+ * On success we do a FULL-PAGE navigation (not router.replace) so the new session
+ * cookie is seen by middleware and no stale, logged-out RSC payload is shown.
  *
  * @module components/app/login-form
  */
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
+type Mode = "advisor" | "admin";
+
 export function LoginForm() {
-  const router = useRouter();
   const params = useSearchParams();
   const from = params.get("from") || "/digest";
 
+  const [mode, setMode] = useState<Mode>("advisor");
   const [workId, setWorkId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -33,10 +39,10 @@ export function LoginForm() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "Login failed.");
-      // Admins go to their oversight area; advisors to the requested page.
+      // Hard navigation so middleware sees the cookie and we don't render a
+      // cached logged-out view of the destination.
       const dest = json.role === "admin" ? "/admin" : from;
-      router.replace(dest);
-      router.refresh();
+      window.location.assign(dest);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
       setBusy(false);
@@ -46,8 +52,23 @@ export function LoginForm() {
   const field =
     "w-full rounded-md border border-foreground/15 bg-foreground/[0.03] px-3 h-11 text-sm focus:outline-none focus:border-foreground/40";
 
+  const tab = (m: Mode) =>
+    `flex-1 h-9 rounded-full text-xs font-mono uppercase tracking-wider transition-colors ${
+      mode === m ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+    }`;
+
   return (
     <form onSubmit={submit} className="space-y-4">
+      {/* Advisor / Admin toggle */}
+      <div className="flex items-center gap-1 p-1 rounded-full border border-foreground/15 bg-foreground/[0.03]">
+        <button type="button" className={tab("advisor")} onClick={() => setMode("advisor")}>
+          Advisor
+        </button>
+        <button type="button" className={tab("admin")} onClick={() => setMode("admin")}>
+          Admin
+        </button>
+      </div>
+
       <div>
         <label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
           Work ID
@@ -56,7 +77,7 @@ export function LoginForm() {
           className={field}
           value={workId}
           onChange={(e) => setWorkId(e.target.value)}
-          placeholder="e.g. ADV-001"
+          placeholder={mode === "admin" ? "e.g. ADM-001" : "e.g. ADV-001"}
           autoFocus
           autoComplete="username"
         />
@@ -86,7 +107,7 @@ export function LoginForm() {
         disabled={busy}
         className="w-full h-11 rounded-full bg-foreground text-background hover:bg-foreground/90"
       >
-        {busy ? "Signing in…" : "Sign in"}
+        {busy ? "Signing in…" : mode === "admin" ? "Sign in as admin" : "Sign in"}
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">

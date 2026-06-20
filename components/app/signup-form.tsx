@@ -8,11 +8,9 @@
  */
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 export function SignupForm() {
-  const router = useRouter();
   const [form, setForm] = useState({ name: "", email: "", firm: "", workId: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -32,8 +30,8 @@ export function SignupForm() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "Sign-up failed.");
-      router.replace("/digest");
-      router.refresh();
+      // Hard navigation so middleware sees the new session cookie.
+      window.location.assign("/digest");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign-up failed.");
       setBusy(false);
