@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * The Staging review queue. Renders staged echoes as before/after diffs and
+ * calls the approve/reject endpoints, refreshing server data on success.
+ * Receives already-shaped {@link StagedItem}s from the server page.
+ *
+ * @module components/app/staging-queue
+ */
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

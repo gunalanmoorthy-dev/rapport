@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * The Echo recorder: captures microphone audio via MediaRecorder, uploads it to
+ * `/api/echo/transcribe`, then sends the transcript to `/api/echo/process` and
+ * shows the committed/staged result. Drives the whole core loop from the client.
+ *
+ * @module components/app/echo-recorder
+ */
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mic, Square, Check } from "lucide-react";

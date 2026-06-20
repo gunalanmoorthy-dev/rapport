@@ -1,3 +1,11 @@
+/**
+ * Seed script: inserts the demo advisor and ~6 realistic clients.
+ *
+ * Idempotent — safe to re-run. It upserts the advisor (fixed id) and replaces
+ * the advisor's client set each run. Run with: `pnpm run seed`.
+ *
+ * @module scripts/seed
+ */
 import { config } from "dotenv";
 // Load env BEFORE importing db/client — that module reads DATABASE_URL at import
 // time, and ESM hoists static imports above this call. Dynamic-import below.

@@ -1,9 +1,25 @@
+/**
+ * `POST /api/echo/transcribe` — turn recorded audio into a transcript.
+ *
+ * @module api/echo/transcribe
+ */
 import { NextResponse } from "next/server";
 import { genai } from "@/lib/gemini";
 
+// Node runtime: we read the uploaded file into a Buffer (not available on edge).
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+/**
+ * Transcribe an uploaded audio blob with a multimodal Gemini model.
+ *
+ * Expects `multipart/form-data` with an `audio` File field. Gemini has no Whisper
+ * endpoint, so the audio is sent inline as base64 with the blob's own mime type
+ * and a "transcribe verbatim" instruction.
+ *
+ * @param req - Request whose form data contains the `audio` file.
+ * @returns `200 { transcript }`; `400` if no audio; `500` on transcription failure.
+ */
 export async function POST(req: Request) {
   try {
     const form = await req.formData();

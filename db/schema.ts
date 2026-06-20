@@ -1,3 +1,16 @@
+/**
+ * Drizzle schema that MATCHES the tables already provisioned in Neon.
+ *
+ * This file is a typed *mirror* of the live database — it is deliberately not a
+ * migration source. Do not run `drizzle-kit push`/generate against it to create
+ * or alter tables; it exists only to type and query the existing `advisors`,
+ * `clients`, `echoes`, and `portfolio_moves` tables. If the real tables change,
+ * update this file by hand to match.
+ *
+ * Money is stored as integer cents (bigint) throughout — never floats.
+ *
+ * @module db/schema
+ */
 import {
   pgTable,
   uuid,
@@ -7,12 +20,6 @@ import {
   timestamp,
   jsonb,
 } from "drizzle-orm/pg-core";
-
-/**
- * Drizzle schema that MATCHES the tables already provisioned in Neon.
- * Do not migrate or recreate from this file — it exists only to type and
- * query the existing `advisors`, `clients`, `echoes`, `portfolio_moves` tables.
- */
 
 export type Sentiment = "green" | "amber" | "red";
 export type EchoStatus = "committed" | "staged" | "rolled_back";

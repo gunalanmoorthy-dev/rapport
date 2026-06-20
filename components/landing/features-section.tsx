@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * Landing "How Rapport works" section: the four product pillars (60-second
+ * Echo, math verified in code, the review queue, zero client-facing AI).
+ *
+ * @module components/landing/features-section
+ */
 import { useEffect, useRef, useState } from "react";
 
 const pillars = [

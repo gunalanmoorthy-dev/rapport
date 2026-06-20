@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * Landing footer: banner image, link columns (pointing at real Rapport pages),
+ * and a decorative animated wave canvas. Purely presentational.
+ *
+ * @module components/landing/footer-section
+ */
 import { ArrowUpRight } from "lucide-react";
 import { useEffect, useRef } from "react";
 

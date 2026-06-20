@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * Landing top navigation: transparent over the hero, condenses into a floating
+ * pill on scroll, with a full-screen mobile menu. Links into the app.
+ *
+ * @module components/landing/navigation
+ */
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";

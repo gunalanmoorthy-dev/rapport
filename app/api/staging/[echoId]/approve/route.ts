@@ -1,3 +1,8 @@
+/**
+ * `POST /api/staging/[echoId]/approve` — commit a staged echo.
+ *
+ * @module api/staging/approve
+ */
 import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
@@ -8,6 +13,20 @@ import { isUuid } from "@/lib/queries";
 
 export const runtime = "nodejs";
 
+/**
+ * Approve a staged echo, committing it in a transaction.
+ *
+ * For a money move, the math is **re-verified against the client's CURRENT
+ * balance** (which may have changed since the echo was recorded) before
+ * inserting the move, updating the balance, and marking the echo `committed` —
+ * all atomically. An overspend at approval time is refused (`409`). A note-only
+ * staged echo simply flips to `committed`.
+ *
+ * @param _req - Unused (no request body).
+ * @param ctx - Route context with `params.echoId`.
+ * @returns `200 { status: "committed", ... }`; `400` invalid id; `404` not found;
+ *          `409` already resolved or overspend; `500` on failure.
+ */
 export async function POST(
   _req: Request,
   { params }: { params: Promise<{ echoId: string }> }

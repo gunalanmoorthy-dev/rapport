@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * Landing hero: full-bleed background video (recolored to teal), an animated
+ * cycling headline word, and three headline stats. Purely presentational.
+ *
+ * @module components/landing/hero-section
+ */
 import { useEffect, useState, useRef } from "react";
 
 const words = ["silent", "tireless", "discreet", "trusted"];

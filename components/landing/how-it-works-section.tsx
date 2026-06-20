@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * Landing process section: the Talk → Verify → Commit flow with a tree visual.
+ * The step cards auto-advance and are also clickable. Purely presentational.
+ *
+ * @module components/landing/how-it-works-section
+ */
 import { useEffect, useRef, useState } from "react";
 
 const steps = [
@@ -56,9 +62,9 @@ export function HowItWorksSection() {
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-white/[0.02] blur-[100px] pointer-events-none" />
 
       <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-12">
-        {/* Header — titre + image cerisier */}
+        {/* Header — heading on the left, tree image on the right */}
         <div className="relative mb-0 lg:mb-0 grid lg:grid-cols-2 gap-4 lg:gap-12 items-end">
-          {/* Titre colonne gauche */}
+          {/* Heading column */}
           <div className="overflow-hidden pb-0 lg:pb-32">
             <div className={`transition-all duration-1000 ${isVisible ? "translate-x-0 opacity-100" : "-translate-x-12 opacity-0"}`}>
               <span className="inline-flex items-center gap-3 text-sm font-mono text-white/40 mb-8">
@@ -76,7 +82,7 @@ export function HowItWorksSection() {
             </h2>
           </div>
 
-          {/* Image cerisier — se colle en bas sur les blocs */}
+          {/* Tree image — anchored to the bottom, sitting on the step cards */}
           <div className={`relative h-[320px] lg:h-[640px] overflow-hidden transition-all duration-1000 delay-200 ${
             isVisible ? "opacity-100" : "opacity-0"
           }`}>
@@ -87,7 +93,7 @@ export function HowItWorksSection() {
               className="absolute bottom-0 left-0 w-full h-full object-contain object-bottom"
               style={{ filter: "hue-rotate(205deg) saturate(0.6) brightness(0.95)" }}
             />
-            {/* Fade sur le bord gauche */}
+            {/* Fade the left edge into the section background */}
             <div className="absolute inset-0 bg-gradient-to-r from-[oklch(0.09_0.01_260)] via-transparent to-transparent pointer-events-none" />
           </div>
         </div>

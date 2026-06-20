@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * Landing closing call-to-action with a cursor-following spotlight. Links to the
+ * Echo recorder. Purely presentational.
+ *
+ * @module components/landing/cta-section
+ */
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";

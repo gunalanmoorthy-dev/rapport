@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * Landing trust section: why Rapport is safe — math verified in code, overspend
+ * blocked deterministically, append-only audit, and human approval of the
+ * uncertain. The feature cards auto-advance. Purely presentational.
+ *
+ * @module components/landing/security-section
+ */
 import { useEffect, useState, useRef } from "react";
 import { Calculator, Lock, Eye, FileCheck } from "lucide-react";
 

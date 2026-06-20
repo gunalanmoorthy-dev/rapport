@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * Recharts wrappers for the Vitality screen: the book-wide sentiment-vs-market
+ * overview chart and the small per-client trend sparklines. Presentational;
+ * currently fed mock time-series data (no sentiment-history table yet).
+ *
+ * @module components/app/vitality-charts
+ */
 import {
   Area,
   Line,

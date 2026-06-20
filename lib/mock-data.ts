@@ -1,3 +1,16 @@
+/**
+ * Shared display helpers + mock data for not-yet-wired screens.
+ *
+ * This module plays two roles (kept together for now to avoid churning imports):
+ *  1. Real, always-used presentation helpers — {@link formatBalance},
+ *     {@link formatCents}, {@link sentimentMeta}, and the {@link Sentiment} type.
+ *  2. Mock fixtures for screens that have no backing tables yet (Vitality,
+ *     Compliance, Audit, Synergy). Those exports are placeholder data only.
+ *
+ * @module lib/mock-data
+ */
+
+/** A client's relationship-health tag, driving colour + copy across the UI. */
 export type Sentiment = "green" | "amber" | "red";
 
 export type PortfolioMove = {
@@ -59,6 +72,12 @@ export const sentimentMeta: Record<
   },
 };
 
+/**
+ * Format a whole-dollar amount as USD with no decimals (e.g. `$14,820,000`).
+ *
+ * @param value - Amount in **dollars** (not cents).
+ * @returns A localized currency string.
+ */
 export function formatBalance(value: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -67,7 +86,13 @@ export function formatBalance(value: number) {
   }).format(value);
 }
 
-/** Money is stored as integer cents everywhere; this is the display bridge. */
+/**
+ * Format an integer-cents amount as USD. The single display bridge for money —
+ * balances are stored as cents everywhere, so always render them through this.
+ *
+ * @param cents - Amount in **integer cents**.
+ * @returns A localized currency string.
+ */
 export function formatCents(cents: number) {
   return formatBalance(cents / 100);
 }

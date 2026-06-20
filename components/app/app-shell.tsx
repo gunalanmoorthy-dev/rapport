@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * Shared in-app chrome: the sticky top nav (with active-route highlighting) that
+ * wraps every authenticated screen. Children render in the main content area.
+ *
+ * @module components/app/app-shell
+ */
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 

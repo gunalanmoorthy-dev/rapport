@@ -1,3 +1,13 @@
+/**
+ * Structured-intent extraction from a voice-brief transcript, via Gemini.
+ *
+ * This is the *only* place the app talks to the LLM for understanding a brief.
+ * It is deliberately isolated from the verify/commit/DB code so the AI provider
+ * can be swapped without touching the trust-critical path. The model is kept
+ * purely extractive — see {@link RawExtraction}.
+ *
+ * @module lib/extract
+ */
 import { Type } from "@google/genai";
 import { genai } from "./gemini";
 import type { MoveDirection } from "@/db/schema";
@@ -61,6 +71,20 @@ const RESPONSE_SCHEMA = {
   propertyOrdering: ["matchedClientName", "intents", "move", "confidence", "summary"],
 };
 
+/**
+ * Extract structured intent from a transcript using Gemini structured output.
+ *
+ * Runs at `temperature: 0` with a strict response schema so the output always
+ * parses into {@link RawExtraction}. The model is told the advisor's client
+ * names so it can match one by name (or return `null` when unsure). It reports
+ * the stated dollar figure only — the caller converts to cents and runs
+ * {@link verifyMove}; the model never does arithmetic.
+ *
+ * @param transcript - The (already transcribed) voice-brief text.
+ * @param clientNames - The advisor's client names, for name matching.
+ * @returns The parsed extraction, with `confidence` clamped to `[0, 1]`.
+ * @throws If the model returns no content.
+ */
 export async function extractIntent(
   transcript: string,
   clientNames: string[]
