@@ -26,7 +26,7 @@ type RegisterBody = {
  * empty book of clients. Work id and email must be unique.
  *
  * @param req - JSON body `{ name, email, workId, password, firm?, role? }`
- *   (`role` is `"advisor"` by default, or `"admin"`).
+ *   (`role` is `"advisor"` by default, or `"admin"` / `"partner"`).
  * @returns `201 { name }` + a session cookie; `400` for missing/invalid fields;
  *          `409` if the work id or email is already taken.
  */
@@ -38,10 +38,11 @@ export async function POST(req: Request) {
     const workId = body.workId?.trim();
     const password = body.password ?? "";
     const firm = body.firm?.trim() || null;
-    // Self-service role choice. NOTE: this lets anyone register as an admin, who
-    // can then oversee every advisor in the firm they typed. Fine for the demo;
-    // in production this should be invite/approval-gated.
-    const role = body.role === "admin" ? "admin" : "advisor";
+    // Self-service role choice. NOTE: this lets anyone register as an admin (who
+    // can then oversee every advisor in the firm they typed) or a partner. Fine
+    // for the demo; in production this should be invite/approval-gated.
+    const role =
+      body.role === "admin" ? "admin" : body.role === "partner" ? "partner" : "advisor";
 
     if (!name || !email || !workId || !password) {
       return NextResponse.json(

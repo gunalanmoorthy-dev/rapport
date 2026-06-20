@@ -65,7 +65,7 @@ export function LoginForm() {
     }`;
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="space-y-4" autoComplete="off">
       {/* Advisor / Admin / Partner toggle */}
       <div className="flex items-center gap-1 p-1 rounded-full border border-foreground/15 bg-foreground/[0.03]">
         <button type="button" className={tab("advisor")} onClick={() => setMode("advisor")}>
@@ -91,7 +91,8 @@ export function LoginForm() {
             mode === "admin" ? "e.g. ADM-001" : mode === "partner" ? "e.g. PTR-001" : "e.g. ADV-001"
           }
           autoFocus
-          autoComplete="username"
+          autoComplete="off"
+          name="rapport-workid"
         />
       </div>
       <div>
@@ -104,7 +105,8 @@ export function LoginForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
-          autoComplete="current-password"
+          autoComplete="new-password"
+          name="rapport-password"
         />
       </div>
 

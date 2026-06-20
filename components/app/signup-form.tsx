@@ -2,9 +2,9 @@
 
 /**
  * Sign-up form. Posts to /api/auth/register, which creates the account and signs
- * the new user in. The Advisor/Admin toggle picks the account role; on success we
- * do a full-page navigation (advisor → /digest, admin → /admin) so middleware
- * sees the new cookie.
+ * the new user in. The Advisor/Admin/Partner toggle picks the account role; on
+ * success we do a full-page navigation (advisor → /digest, admin → /admin,
+ * partner → /partner) so middleware sees the new cookie.
  *
  * @module components/app/signup-form
  */
@@ -12,7 +12,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-type Mode = "advisor" | "admin";
+type Mode = "advisor" | "admin" | "partner";
 
 export function SignupForm() {
   const [mode, setMode] = useState<Mode>("advisor");
@@ -36,7 +36,9 @@ export function SignupForm() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "Sign-up failed.");
       // Hard navigation so middleware sees the new session cookie.
-      window.location.assign(json.role === "admin" ? "/admin" : "/digest");
+      window.location.assign(
+        json.role === "admin" ? "/admin" : json.role === "partner" ? "/partner" : "/digest"
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign-up failed.");
       setBusy(false);
@@ -52,7 +54,7 @@ export function SignupForm() {
     }`;
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="space-y-4" autoComplete="off">
       {/* Account type */}
       <div className="flex items-center gap-1 p-1 rounded-full border border-foreground/15 bg-foreground/[0.03]">
         <button type="button" className={tab("advisor")} onClick={() => setMode("advisor")}>
@@ -61,31 +63,39 @@ export function SignupForm() {
         <button type="button" className={tab("admin")} onClick={() => setMode("admin")}>
           Admin
         </button>
+        <button type="button" className={tab("partner")} onClick={() => setMode("partner")}>
+          Partner
+        </button>
       </div>
       {mode === "admin" && (
         <p className="text-xs font-mono text-[#eca8d6] -mt-1">
           Admins oversee every advisor in the firm you enter below.
         </p>
       )}
+      {mode === "partner" && (
+        <p className="text-xs font-mono text-[#eca8d6] -mt-1">
+          Partners see only the shared Partnership ecosystem.
+        </p>
+      )}
 
       <div>
         <label className={label}>Full name</label>
-        <input className={field} value={form.name} onChange={set("name")} placeholder={mode === "admin" ? "Morgan Reyes" : "Jordan Avery"} autoFocus />
+        <input className={field} value={form.name} onChange={set("name")} placeholder={mode === "admin" ? "Morgan Reyes" : mode === "partner" ? "Casey Lin" : "Jordan Avery"} autoFocus autoComplete="off" />
       </div>
       <div>
         <label className={label}>Email</label>
-        <input className={field} type="email" value={form.email} onChange={set("email")} placeholder="you@firm.com" autoComplete="email" />
+        <input className={field} type="email" value={form.email} onChange={set("email")} placeholder="you@firm.com" autoComplete="off" />
       </div>
       <div>
         <label className={label}>
           Firm {mode === "admin" ? <span className="normal-case text-[#eca8d6]">(advisors you oversee)</span> : <span className="normal-case opacity-60">(optional)</span>}
         </label>
-        <input className={field} value={form.firm} onChange={set("firm")} placeholder="Firm name" />
+        <input className={field} value={form.firm} onChange={set("firm")} placeholder="Firm name" autoComplete="off" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={label}>Work ID</label>
-          <input className={field} value={form.workId} onChange={set("workId")} placeholder={mode === "admin" ? "ADM-002" : "ADV-003"} autoComplete="username" />
+          <input className={field} value={form.workId} onChange={set("workId")} placeholder={mode === "admin" ? "ADM-002" : mode === "partner" ? "PTR-002" : "ADV-003"} autoComplete="off" />
         </div>
         <div>
           <label className={label}>Password</label>
@@ -104,7 +114,13 @@ export function SignupForm() {
         disabled={busy}
         className="w-full h-11 rounded-full bg-foreground text-background hover:bg-foreground/90"
       >
-        {busy ? "Creating account…" : mode === "admin" ? "Create admin account" : "Create account"}
+        {busy
+          ? "Creating account…"
+          : mode === "admin"
+            ? "Create admin account"
+            : mode === "partner"
+              ? "Create partner account"
+              : "Create account"}
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">
