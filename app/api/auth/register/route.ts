@@ -65,8 +65,8 @@ export async function POST(req: Request) {
       .values({ name, email, workId, firm, passwordHash: hashPassword(password) })
       .returning();
 
-    await setSession(advisor.id);
-    return NextResponse.json({ name: advisor.name }, { status: 201 });
+    await setSession(advisor.id, "advisor");
+    return NextResponse.json({ name: advisor.name, role: "advisor" }, { status: 201 });
   } catch (err) {
     console.error("register error", err);
     // Unique-constraint race (work id / email) → friendly conflict.

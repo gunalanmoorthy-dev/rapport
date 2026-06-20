@@ -10,6 +10,8 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 const STATEMENTS = [
+  // Account role for the admin oversight interface.
+  `ALTER TABLE advisors ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'advisor'`,
   `CREATE TABLE IF NOT EXISTS cpd_entries (
      id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
      advisor_id  uuid NOT NULL REFERENCES advisors(id) ON DELETE CASCADE,

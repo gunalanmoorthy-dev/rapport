@@ -33,8 +33,9 @@ export function LoginForm() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "Login failed.");
-      // Full navigation so the middleware sees the new cookie.
-      router.replace(from);
+      // Admins go to their oversight area; advisors to the requested page.
+      const dest = json.role === "admin" ? "/admin" : from;
+      router.replace(dest);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");

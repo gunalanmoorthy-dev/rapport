@@ -39,8 +39,9 @@ export async function POST(req: Request) {
       );
     }
 
-    await setSession(advisor.id);
-    return NextResponse.json({ name: advisor.name });
+    const role = advisor.role ?? "advisor";
+    await setSession(advisor.id, role);
+    return NextResponse.json({ name: advisor.name, role });
   } catch (err) {
     console.error("login error", err);
     return NextResponse.json(

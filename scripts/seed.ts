@@ -5,8 +5,9 @@
  * advisor's clients/activities. Run with: `pnpm run seed`.
  *
  * Demo credentials (work id / password):
- *   ADV-001 / rapport2026  → Alex Donovan (6 clients)
- *   ADV-002 / rapport2026  → Jordan Avery (2 clients)
+ *   ADV-001 / rapport2026  → Alex Donovan (advisor, 6 clients)
+ *   ADV-002 / rapport2026  → Jordan Avery (advisor, 2 clients)
+ *   ADM-001 / rapport2026  → Morgan Reyes (admin, firm oversight)
  *
  * @module scripts/seed
  */
@@ -17,6 +18,7 @@ config({ path: ".env.local" });
 
 const dollars = (d: number) => Math.round(d * 100);
 const ADVISOR_2_ID = "00000000-0000-0000-0000-000000000002";
+const ADMIN_ID = "00000000-0000-0000-0000-000000000003";
 const DEMO_PASSWORD = "rapport2026";
 
 const clientsByAdvisorWorkId: Record<
@@ -59,8 +61,9 @@ async function main() {
   const passwordHash = hashPassword(DEMO_PASSWORD);
 
   const advisorRows = [
-    { id: DEMO_ADVISOR_ID, email: "alex@rapport.demo", name: "Alex Donovan", firm: "Rapport Wealth Partners", workId: "ADV-001" },
-    { id: ADVISOR_2_ID, email: "jordan@rapport.demo", name: "Jordan Avery", firm: "Rapport Wealth Partners", workId: "ADV-002" },
+    { id: DEMO_ADVISOR_ID, email: "alex@rapport.demo", name: "Alex Donovan", firm: "Rapport Wealth Partners", workId: "ADV-001", role: "advisor" as const },
+    { id: ADVISOR_2_ID, email: "jordan@rapport.demo", name: "Jordan Avery", firm: "Rapport Wealth Partners", workId: "ADV-002", role: "advisor" as const },
+    { id: ADMIN_ID, email: "morgan@rapport.demo", name: "Morgan Reyes", firm: "Rapport Wealth Partners", workId: "ADM-001", role: "admin" as const },
   ];
 
   for (const a of advisorRows) {
@@ -70,22 +73,25 @@ async function main() {
       .values({ ...a, passwordHash })
       .onConflictDoUpdate({
         target: advisors.id,
-        set: { email: a.email, name: a.name, firm: a.firm, workId: a.workId, passwordHash },
+        set: { email: a.email, name: a.name, firm: a.firm, workId: a.workId, role: a.role, passwordHash },
       });
 
     // Re-runnable: clear this advisor's clients (cascades to echoes + moves) first.
     await db.delete(clients).where(eq(clients.advisorId, a.id));
-    await db.insert(clients).values(
-      clientsByAdvisorWorkId[a.workId].map((c) => ({
-        advisorId: a.id,
-        name: c.name,
-        sentiment: c.sentiment,
-        totalBalanceCents: c.balance,
-        email: c.email,
-        phone: c.phone,
-        status: "active" as const,
-      }))
-    );
+    const clientList = clientsByAdvisorWorkId[a.workId] ?? [];
+    if (clientList.length) {
+      await db.insert(clients).values(
+        clientList.map((c) => ({
+          advisorId: a.id,
+          name: c.name,
+          sentiment: c.sentiment,
+          totalBalanceCents: c.balance,
+          email: c.email,
+          phone: c.phone,
+          status: "active" as const,
+        }))
+      );
+    }
   }
 
   // Compliance activities for advisor 1 only.
@@ -101,7 +107,7 @@ async function main() {
 
   for (const a of advisorRows) {
     const rows = await db.select().from(clients).where(eq(clients.advisorId, a.id));
-    console.log(`${a.workId} (${a.name}) · password "${DEMO_PASSWORD}" · ${rows.length} clients`);
+    console.log(`${a.workId} (${a.name}) · ${a.role} · password "${DEMO_PASSWORD}" · ${rows.length} clients`);
   }
 
   await pool.end();

@@ -27,5 +27,6 @@ export async function GET() {
     name: advisor.name,
     workId: advisor.workId,
     firm: advisor.firm,
+    role: advisor.role ?? "advisor",
   });
 }

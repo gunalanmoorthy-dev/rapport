@@ -19,17 +19,32 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const advisorId = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
-  if (advisorId) return NextResponse.next();
+  const session = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+  const isApi = pathname.startsWith("/api/");
 
-  if (pathname.startsWith("/api/")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) {
+    if (isApi) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const url = req.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("from", pathname);
+    return NextResponse.redirect(url);
   }
 
-  const url = req.nextUrl.clone();
-  url.pathname = "/login";
-  url.searchParams.set("from", pathname);
-  return NextResponse.redirect(url);
+  // Role separation: admins live in /admin, advisors live in the main app.
+  const isAdmin = session.role === "admin";
+  const isAdminPath =
+    pathname === "/admin" || pathname.startsWith("/admin/") || pathname.startsWith("/api/admin");
+
+  if (isAdmin && !isAdminPath) {
+    if (isApi) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.redirect(new URL("/admin", req.url));
+  }
+  if (!isAdmin && isAdminPath) {
+    if (isApi) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.redirect(new URL("/digest", req.url));
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {

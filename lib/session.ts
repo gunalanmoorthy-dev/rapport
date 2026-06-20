@@ -9,7 +9,10 @@
  * @module lib/session
  */
 
-type SessionPayload = { sub: string; exp: number };
+type SessionPayload = { sub: string; role: string; exp: number };
+
+/** Decoded session: the advisor id and their role. */
+export type Session = { advisorId: string; role: string };
 
 const enc = new TextEncoder();
 const dec = new TextDecoder();
@@ -56,9 +59,14 @@ async function hmacKey(): Promise<CryptoKey> {
  * @param ttlSeconds - Token lifetime in seconds (default 7 days).
  * @returns A `<payload>.<signature>` token to store in an httpOnly cookie.
  */
-export async function signSession(advisorId: string, ttlSeconds = 7 * 86400): Promise<string> {
+export async function signSession(
+  advisorId: string,
+  role: string = "advisor",
+  ttlSeconds = 7 * 86400
+): Promise<string> {
   const payload: SessionPayload = {
     sub: advisorId,
+    role,
     exp: Math.floor(Date.now() / 1000) + ttlSeconds,
   };
   const body = bytesToB64url(enc.encode(JSON.stringify(payload)));
@@ -70,9 +78,10 @@ export async function signSession(advisorId: string, ttlSeconds = 7 * 86400): Pr
  * Verify a session token and return the advisor id if valid and unexpired.
  *
  * @param token - The `<payload>.<signature>` token from the cookie.
- * @returns The advisor id, or `null` if the token is missing/forged/expired.
+ * @returns The {@link Session} (advisor id + role), or `null` if the token is
+ *          missing/forged/expired.
  */
-export async function verifySession(token: string | undefined | null): Promise<string | null> {
+export async function verifySession(token: string | undefined | null): Promise<Session | null> {
   if (!token) return null;
   const [body, sig] = token.split(".");
   if (!body || !sig) return null;
@@ -86,7 +95,8 @@ export async function verifySession(token: string | undefined | null): Promise<s
     if (!ok) return null;
     const payload = JSON.parse(dec.decode(b64urlToBytes(body))) as SessionPayload;
     if (!payload.exp || payload.exp < Date.now() / 1000) return null;
-    return payload.sub ?? null;
+    if (!payload.sub) return null;
+    return { advisorId: payload.sub, role: payload.role ?? "advisor" };
   } catch {
     return null;
   }

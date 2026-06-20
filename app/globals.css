@@ -39,6 +39,41 @@
   --sidebar-ring: oklch(0.55 0.015 90);
 }
 
+/*
+ * Light theme. next-themes sets class="light" on <html> when toggled; dark stays
+ * the default (the :root values above). App screens are token-based, so flipping
+ * these variables recolours them cleanly (the marketing hero stays dark by design).
+ */
+.light {
+  --background: oklch(0.985 0.003 90);
+  --foreground: oklch(0.18 0.01 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.01 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.01 260);
+  --primary: oklch(0.18 0.01 260);
+  --primary-foreground: oklch(0.985 0.003 90);
+  --secondary: oklch(0.95 0.004 90);
+  --secondary-foreground: oklch(0.18 0.01 260);
+  --muted: oklch(0.95 0.004 90);
+  --muted-foreground: oklch(0.45 0.02 260);
+  --accent: oklch(0.93 0.006 260);
+  --accent-foreground: oklch(0.18 0.01 260);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0.003 90);
+  --border: oklch(0.90 0.005 260);
+  --input: oklch(0.92 0.005 260);
+  --ring: oklch(0.18 0.01 260);
+  --sidebar: oklch(0.985 0.003 90);
+  --sidebar-foreground: oklch(0.18 0.01 260);
+  --sidebar-primary: oklch(0.18 0.01 260);
+  --sidebar-primary-foreground: oklch(0.985 0.003 90);
+  --sidebar-accent: oklch(0.93 0.006 260);
+  --sidebar-accent-foreground: oklch(0.18 0.01 260);
+  --sidebar-border: oklch(0.90 0.005 260);
+  --sidebar-ring: oklch(0.45 0.02 260);
+}
+
 @theme inline {
   --font-sans: var(--font-instrument), 'Instrument Sans', system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), 'JetBrains Mono', monospace;

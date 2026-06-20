@@ -28,6 +28,8 @@ export type EchoStatus = "committed" | "staged" | "rolled_back";
 export type MoveDirection = "in" | "out";
 /** A client is `pending` until an advisor approves it into the active book. */
 export type ClientStatus = "pending" | "active";
+/** Account role. Admins oversee (read-only) every advisor sharing their firm. */
+export type AdvisorRole = "advisor" | "admin";
 
 /** Shape of the structured intent the model extracts from a voice brief. */
 export type ExtractedIntent = {
@@ -55,6 +57,8 @@ export const advisors = pgTable("advisors", {
   // Login credentials: a human-friendly work id + a scrypt password hash.
   workId: text("work_id").unique(),
   passwordHash: text("password_hash"),
+  // 'advisor' (default) or 'admin' (firm oversight, read-only).
+  role: text("role").$type<AdvisorRole>().default("advisor"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
