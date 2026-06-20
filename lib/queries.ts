@@ -44,6 +44,21 @@ export async function getAdvisorByWorkId(workId: string): Promise<Advisor | null
 }
 
 /**
+ * Look up an advisor by email (used to reject duplicate sign-ups).
+ *
+ * @param email - The email to check.
+ * @returns The advisor row, or `null`.
+ */
+export async function getAdvisorByEmail(email: string): Promise<Advisor | null> {
+  const rows = await db
+    .select()
+    .from(advisors)
+    .where(eq(advisors.email, email))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/**
  * Look up an advisor by id (for the session/greeting).
  *
  * @param id - Advisor UUID.

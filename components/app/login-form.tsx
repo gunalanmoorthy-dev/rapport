@@ -7,6 +7,7 @@
  * @module components/app/login-form
  */
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
@@ -86,6 +87,13 @@ export function LoginForm() {
       >
         {busy ? "Signing in…" : "Sign in"}
       </Button>
+
+      <p className="text-center text-sm text-muted-foreground">
+        New to Rapport?{" "}
+        <Link href="/signup" className="text-foreground hover:underline">
+          Create an account
+        </Link>
+      </p>
     </form>
   );
 }
