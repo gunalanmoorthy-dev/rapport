@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Handshake, Mail, TrendingUp } from "lucide-react";
+import { ArrowLeft, Handshake, Mail } from "lucide-react";
 import { AdminShell } from "@/components/app/admin-shell";
 import { AdminAddPartner } from "@/components/app/admin-add-partner";
+import { EcosystemIdentity } from "@/components/app/ecosystem-identity";
 import { requireAdmin } from "@/lib/auth";
 import { getAdvisorById } from "@/lib/queries";
-import { getPartners, getFirmReferrals, tallyPartners } from "@/lib/partners";
+import { getPartners, getFirmReferrals } from "@/lib/partners";
 import { getEffectiveAdminFirm } from "@/lib/admin";
 import type { ReferralStatus } from "@/db/schema";
 import { relativeFromNow } from "@/lib/display";
@@ -26,6 +27,21 @@ const STATUS_META: Record<ReferralStatus, { label: string; cls: string }> = {
 
 const PIPELINE_ORDER: ReferralStatus[] = ["introduced", "responded", "progressing", "closed"];
 
+/** Demo directory rows — referred contacts and the partner they belong to. */
+const DIRECTORY_CONTACTS = [
+  { name: "Daniel Mercer", email: "daniel.mercer@meridiantax.com", partner: "Meridian Tax Advisory" },
+  { name: "Sophia Reyes", email: "sophia.reyes@helioslending.com", partner: "Helios Private Lending" },
+  { name: "Marcus Aldridge", email: "marcus.aldridge@asterlegal.com", partner: "Aster Legal Partners" },
+  { name: "Olivia Chen", email: "olivia.chen@nimbusinsure.com", partner: "Nimbus Insurance Group" },
+  { name: "Ethan Vance", email: "ethan.vance@vantarealty.com", partner: "Vanta Real Estate Advisors" },
+];
+
+/** Stable, personal-looking referral code derived from the admin's id. */
+function personalReferralCode(seed: string): string {
+  const hex = seed.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8).toUpperCase() || "RAPPORT1";
+  return `RAP-${hex}`;
+}
+
 export default async function AdminPartnersPage() {
   const adminId = await requireAdmin();
   const admin = await getAdvisorById(adminId);
@@ -35,7 +51,8 @@ export default async function AdminPartnersPage() {
     getPartners(),
     getFirmReferrals(firm),
   ]);
-  const stats = tallyPartners(partners, referrals);
+
+  const referralCode = personalReferralCode(admin?.id ?? adminId);
 
   const activeTotal = referrals.filter((r) => r.status !== "closed").length;
   const closedTotal = referrals.filter((r) => r.status === "closed").length;
@@ -66,6 +83,11 @@ export default async function AdminPartnersPage() {
               The firm&apos;s shared partner network and every introduction advisors have made —
               so the right partner surfaces at the right moment.
             </p>
+            <EcosystemIdentity
+              name={admin?.name ?? "Admin"}
+              coins={10}
+              referralCode={referralCode}
+            />
           </div>
           <div className="flex items-center gap-8 shrink-0">
             <div className="text-right">
@@ -86,59 +108,37 @@ export default async function AdminPartnersPage() {
         {/* Add partner (admin write) */}
         <AdminAddPartner />
 
-        {/* Partner directory — ranked best-fit first (conversion, then volume) */}
+        {/* Partner directory — referred contacts across the ecosystem */}
         <div className="mb-14">
-          <h2 className={sectionLabel}>Partner directory · ranked by productivity</h2>
-          {stats.length === 0 ? (
-            <p className="text-sm font-mono text-muted-foreground/60">No partners yet — add one above.</p>
-          ) : (
-            <div className="grid sm:grid-cols-2 gap-4">
-              {stats.map(({ partner, total, active, closed, conversionRate }) => (
-                <div key={partner.id} className="border border-foreground/10 bg-foreground/[0.02] rounded-md p-5">
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="min-w-0">
-                      <p className="text-base font-medium flex items-center gap-2">
-                        <Handshake className="w-4 h-4 text-[#eca8d6] shrink-0" />
-                        {partner.name}
-                      </p>
-                      {partner.specialization && (
-                        <p className="text-xs font-mono text-muted-foreground mt-1">{partner.specialization}</p>
-                      )}
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-xs font-mono text-emerald-300 shrink-0">
-                      <TrendingUp className="w-3.5 h-3.5" />
-                      {Math.round(conversionRate * 100)}%
-                    </span>
-                  </div>
-
-                  {partner.specializationTags && partner.specializationTags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-3">
-                      {partner.specializationTags.map((t) => (
-                        <span
-                          key={t}
-                          className="px-2 py-0.5 rounded-full border border-foreground/10 bg-foreground/5 text-[10px] font-mono text-muted-foreground"
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-4 text-xs font-mono text-muted-foreground">
-                    <span>{total} intros</span>
-                    <span className="text-[#eca8d6]">{active} active</span>
-                    <span className="text-emerald-300">{closed} closed</span>
-                  </div>
-
-                  {partner.contactEmail && (
-                    <p className="text-xs font-mono text-muted-foreground/70 mt-3 inline-flex items-center gap-1.5">
-                      <Mail className="w-3 h-3" /> {partner.contactEmail}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <h2 className={sectionLabel}>Partner directory · {DIRECTORY_CONTACTS.length} contacts</h2>
+          <div className="border border-foreground/10 rounded-md overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-foreground/10 bg-foreground/[0.02] text-left">
+                  <th className="px-4 py-3 text-xs font-mono uppercase tracking-wider text-muted-foreground font-normal">Name</th>
+                  <th className="px-4 py-3 text-xs font-mono uppercase tracking-wider text-muted-foreground font-normal">Email</th>
+                  <th className="px-4 py-3 text-xs font-mono uppercase tracking-wider text-muted-foreground font-normal">Ecosystem partner</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-foreground/10">
+                {DIRECTORY_CONTACTS.map((c) => (
+                  <tr key={c.email} className="hover:bg-foreground/[0.02] transition-colors">
+                    <td className="px-4 py-3 font-medium">{c.name}</td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
+                        <Mail className="w-3 h-3" /> {c.email}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center gap-1.5 text-xs text-[#eca8d6]">
+                        <Handshake className="w-3.5 h-3.5 shrink-0" /> {c.partner}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Referral pipeline — across all advisors in the firm */}
