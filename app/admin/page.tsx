@@ -5,7 +5,7 @@ import { AdminShell } from "@/components/app/admin-shell";
 import { formatCents } from "@/lib/mock-data";
 import { requireAdmin } from "@/lib/auth";
 import { getAdvisorById, getClients } from "@/lib/queries";
-import { getFirmAdvisors } from "@/lib/admin";
+import { getFirmAdvisors, getEffectiveAdminFirm } from "@/lib/admin";
 
 export const metadata: Metadata = {
   title: "Admin · Rapport",
@@ -17,7 +17,8 @@ export const dynamic = "force-dynamic";
 export default async function AdminOverviewPage() {
   const adminId = await requireAdmin();
   const admin = await getAdvisorById(adminId);
-  const advisors = await getFirmAdvisors(admin?.firm ?? null);
+  const firm = await getEffectiveAdminFirm(admin?.firm ?? null);
+  const advisors = await getFirmAdvisors(firm);
 
   // Per-advisor headline stats (read-only).
   const stats = await Promise.all(
@@ -38,7 +39,7 @@ export default async function AdminOverviewPage() {
           <div>
             <span className="inline-flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-4">
               <span className="w-8 h-px bg-foreground/30" />
-              {admin?.firm ?? "Firm"}
+              {firm}
             </span>
             <h1 className="text-5xl lg:text-6xl font-display tracking-tight">Firm overview</h1>
           </div>

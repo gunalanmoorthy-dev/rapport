@@ -26,7 +26,7 @@ const SCENARIOS: Scenario[] = [
     // High confidence + valid inflow -> auto-commits, balance goes up.
     id: "commit-inflow",
     transcript:
-      "Just got off a call with Priya Venkataraman. She's contributing an additional two hundred thousand dollars to her portfolio — please add it to her account.",
+      "Okay, quick recap from my meeting this afternoon with Priya Venkataraman. She came in with her husband — they've just sold their stake in the family business and the proceeds have finally cleared. We spent most of the hour talking through her time horizon and risk appetite now that she's closer to retirement, and she's comfortable staying with the balanced mandate we agreed last quarter. The headline action: she's contributing an additional two hundred thousand dollars to her portfolio, allocated along that same mandate — please add the two hundred thousand dollar contribution to her account. She also mentioned she'll be travelling through August, so let's pencil in the next review for September.",
     extraction: {
       matchedClientName: "Priya Venkataraman",
       intents: ["Add a $200,000 contribution to the portfolio"],
@@ -39,7 +39,7 @@ const SCENARIOS: Scenario[] = [
     // High confidence + valid outflow -> auto-commits, balance goes down.
     id: "commit-outflow",
     transcript:
-      "Quick note from my meeting with Eleanor Harrington — she wants to withdraw fifty thousand dollars for a property deposit.",
+      "Just wrapping up after my meeting with Eleanor Harrington — really good catch-up, she's in great spirits. The main thing is she's finally found a property, a small place by the coast she's been wanting for years, and she needs liquidity for the deposit. She wants to withdraw fifty thousand dollars for the property deposit, ideally settled by the end of the month. We talked through whether to draw it from the cash position or trim the bond allocation, and she's comfortable taking the whole fifty thousand from cash. Everything else in the financial plan stays exactly as is.",
     extraction: {
       matchedClientName: "Eleanor Harrington",
       intents: ["Withdraw $50,000 for a property deposit"],
@@ -52,7 +52,7 @@ const SCENARIOS: Scenario[] = [
     // Outflow that exceeds the balance -> flagged invalid, routed to Staging.
     id: "overspend",
     transcript:
-      "Met with James Whitlock. He wants to pull out five million dollars right away.",
+      "Note from my call with James Whitlock — and this one's a bit of a curveball, so flagging it. He's looking at a large off-market acquisition and got fairly insistent on the phone about timing. He wants to pull out five million dollars right away, today if at all possible. I told him I'd log the request but that we'd need to review feasibility against his actual holdings before anything moves. Putting this in for a second set of eyes before we action it.",
     extraction: {
       matchedClientName: "James Whitlock",
       intents: ["Withdraw $5,000,000 immediately"],
@@ -65,7 +65,7 @@ const SCENARIOS: Scenario[] = [
     // High confidence, no money move -> commits a note, no balance change.
     id: "note",
     transcript:
-      "Note for Sophie Delacroix's file — she asked about ESG screening for the next tranche. Flag it for the quarterly review.",
+      "Quick note for Sophie Delacroix's file after our coffee this morning. No transactions today — this is purely a preference she raised and wanted on record. She's increasingly focused on sustainability and asked specifically about ESG screening for the next tranche of capital we deploy; in particular she wants to make sure we're not holding anything in fossil fuels or weapons manufacturers. Please flag ESG screening for the quarterly review so we can bring her a proper set of options then.",
     extraction: {
       matchedClientName: "Sophie Delacroix",
       intents: ["Flag ESG screening for the quarterly review"],
@@ -78,7 +78,7 @@ const SCENARIOS: Scenario[] = [
     // Ambiguous / low confidence -> routed to Staging for review.
     id: "ambiguous",
     transcript:
-      "Had a quick chat — someone mentioned maybe moving some money around later, not totally sure who or how much.",
+      "Hey, just dictating a quick thought before I forget. Had a hallway chat at the industry event tonight — someone mentioned maybe moving some money around later in the year, possibly a rebalance or pulling some out, but honestly I'm not totally sure who it was or how much we're talking about. Putting this here so it doesn't get lost, but I'll need to follow up and confirm the details before we do anything at all.",
     extraction: {
       matchedClientName: null,
       intents: ["Clarify an unconfirmed future change"],

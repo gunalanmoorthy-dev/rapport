@@ -6,6 +6,7 @@ import { AdminAddPartner } from "@/components/app/admin-add-partner";
 import { requireAdmin } from "@/lib/auth";
 import { getAdvisorById } from "@/lib/queries";
 import { getPartners, getFirmReferrals, tallyPartners } from "@/lib/partners";
+import { getEffectiveAdminFirm } from "@/lib/admin";
 import type { ReferralStatus } from "@/db/schema";
 import { relativeFromNow } from "@/lib/display";
 
@@ -28,10 +29,11 @@ const PIPELINE_ORDER: ReferralStatus[] = ["introduced", "responded", "progressin
 export default async function AdminPartnersPage() {
   const adminId = await requireAdmin();
   const admin = await getAdvisorById(adminId);
+  const firm = await getEffectiveAdminFirm(admin?.firm ?? null);
 
   const [partners, referrals] = await Promise.all([
     getPartners(),
-    getFirmReferrals(admin?.firm ?? null),
+    getFirmReferrals(firm),
   ]);
   const stats = tallyPartners(partners, referrals);
 
@@ -57,7 +59,7 @@ export default async function AdminPartnersPage() {
           <div>
             <span className="inline-flex items-center gap-3 text-xs font-mono uppercase tracking-wider text-muted-foreground mb-4">
               <span className="w-8 h-px bg-foreground/30" />
-              {admin?.firm ?? "Firm"} · Ecosystem
+              {firm} · Ecosystem
             </span>
             <h1 className="text-4xl lg:text-5xl font-display tracking-tight">Partnership ecosystem</h1>
             <p className="text-sm text-muted-foreground mt-3 max-w-xl leading-relaxed">

@@ -11,6 +11,30 @@ import { advisors } from "@/db/schema";
 import type { Advisor } from "@/db/schema";
 import { isUuid } from "./queries";
 
+/** The seeded demo firm used as a fallback for empty/new admin firms. */
+export const DEMO_FIRM = "Rapport Wealth Partners";
+
+/**
+ * Resolve which firm an admin should actually see. If their own firm already has
+ * advisors, that firm is used (real isolation). Otherwise — e.g. a freshly
+ * signed-up admin, or any reviewer trying the demo — we fall back to the seeded
+ * {@link DEMO_FIRM} so oversight is never empty.
+ *
+ * @param firm - The admin's own firm.
+ * @returns The firm whose advisors the admin should be shown.
+ */
+export async function getEffectiveAdminFirm(firm: string | null): Promise<string> {
+  if (firm) {
+    const rows = await db
+      .select({ id: advisors.id })
+      .from(advisors)
+      .where(and(eq(advisors.firm, firm), eq(advisors.role, "advisor")))
+      .limit(1);
+    if (rows.length > 0) return firm;
+  }
+  return DEMO_FIRM;
+}
+
 /**
  * The advisors an admin oversees: everyone with role `advisor` in the same firm.
  *

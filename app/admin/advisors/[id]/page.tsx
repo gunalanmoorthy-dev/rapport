@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { ArrowLeft, BookOpen, Bot, Lock, Mic, StickyNote, User } from "lucide-react";
+import { ArrowLeft, Bot, Lock, Mic, StickyNote, User } from "lucide-react";
 import { AdminShell } from "@/components/app/admin-shell";
 import { AdminAddActivity } from "@/components/app/admin-add-activity";
 import { SentimentTag } from "@/components/app/sentiment-tag";
@@ -17,7 +17,7 @@ import {
   getActivities,
   getLastContactByClient,
 } from "@/lib/queries";
-import { getManagedAdvisor } from "@/lib/admin";
+import { getManagedAdvisor, getEffectiveAdminFirm } from "@/lib/admin";
 import { tallyCpd } from "@/lib/cpd";
 import { relativeFromNow, formatDateTime, householdLabel } from "@/lib/display";
 
@@ -25,7 +25,6 @@ export const dynamic = "force-dynamic";
 
 const LOCKED_AREAS = [
   { name: "Notes", icon: StickyNote },
-  { name: "Library", icon: BookOpen },
 ] as const;
 
 export async function generateMetadata({
@@ -36,7 +35,8 @@ export async function generateMetadata({
   const { id } = await params;
   const adminId = await requireAdmin();
   const admin = await getAdvisorById(adminId);
-  const target = await getManagedAdvisor(admin?.firm ?? null, id);
+  const firm = await getEffectiveAdminFirm(admin?.firm ?? null);
+  const target = await getManagedAdvisor(firm, id);
   return { title: target ? `${target.name} · Admin · Rapport` : "Admin · Rapport" };
 }
 
@@ -48,7 +48,8 @@ export default async function AdminAdvisorPage({
   const { id } = await params;
   const adminId = await requireAdmin();
   const admin = await getAdvisorById(adminId);
-  const target = await getManagedAdvisor(admin?.firm ?? null, id);
+  const firm = await getEffectiveAdminFirm(admin?.firm ?? null);
+  const target = await getManagedAdvisor(firm, id);
   if (!target) notFound();
 
   const [clients, staged, activities, lastContact, cpdRows] = await Promise.all([
@@ -83,7 +84,7 @@ export default async function AdminAdvisorPage({
               {target.workId} · {target.firm}
             </p>
             <p className="text-xs font-mono text-[#eca8d6] mt-3 inline-flex items-center gap-1.5">
-              <Lock className="w-3 h-3" /> Oversight · you can log compliance here; Notes &amp; Library stay private to the advisor
+              <Lock className="w-3 h-3" /> Oversight · you can log compliance here; Notes stay private to the advisor
             </p>
           </div>
           <div className="flex items-center gap-8 shrink-0">
@@ -101,7 +102,7 @@ export default async function AdminAdvisorPage({
         {/* Locked areas — private to the advisor */}
         <div className="mb-14">
           <h2 className={sectionLabel}>Private to advisor · locked</h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {LOCKED_AREAS.map(({ name, icon: Icon }) => (
               <div
                 key={name}

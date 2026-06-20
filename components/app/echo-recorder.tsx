@@ -25,7 +25,17 @@ type ProcessResult = {
   invalid?: boolean;
 };
 
-const MAX_SECONDS = 60;
+const MAX_SECONDS = 2 * 60 * 60; // up to two hours
+
+/** Format a duration in seconds as h:mm:ss (or m:ss under an hour). */
+function formatClock(total: number): string {
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const mm = String(m).padStart(2, "0");
+  const ss = String(s).padStart(2, "0");
+  return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
+}
 
 // Fixed bar heights so the waveform is deterministic (no hydration mismatch).
 const WAVE_BARS = [0.4, 0.7, 0.95, 0.55, 0.8, 0.35, 0.6, 0.9, 0.45, 0.75, 0.5, 0.85, 0.3, 0.65, 0.95, 0.5, 0.7, 0.4];
@@ -179,8 +189,8 @@ export function EchoRecorder() {
   };
 
   const remaining = MAX_SECONDS - seconds;
-  const countdown = `0:${String(remaining).padStart(2, "0")}`;
-  const elapsed = `${String(Math.floor(seconds / 60))}:${String(seconds % 60).padStart(2, "0")}`;
+  const countdown = formatClock(remaining);
+  const elapsed = formatClock(seconds);
 
   return (
     <div className="flex flex-col items-center">
@@ -268,7 +278,7 @@ export function EchoRecorder() {
       <div className="flex flex-col items-center gap-2 mb-12 text-center">
         {phase === "idle" && (
           <>
-            <p className="text-2xl font-display">Record a 60-second brief</p>
+            <p className="text-2xl font-display">Record a brief — up to 2 hours</p>
             <p className="text-sm text-muted-foreground font-mono">
               Tap the mic and talk. Rapport handles the rest.
             </p>
@@ -279,7 +289,7 @@ export function EchoRecorder() {
             <p className="text-5xl font-display tabular-nums text-red-400">{countdown}</p>
             <p className="text-sm text-muted-foreground font-mono flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              Recording · {remaining}s remaining
+              Recording · {countdown} remaining
             </p>
           </>
         )}

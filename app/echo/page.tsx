@@ -4,7 +4,7 @@ import { EchoRecorder } from "@/components/app/echo-recorder";
 
 export const metadata: Metadata = {
   title: "Echo · Rapport",
-  description: "Capture a 60-second voice brief and let Rapport handle the back-office.",
+  description: "Capture a voice brief up to two hours and let Rapport handle the back-office.",
 };
 
 export default function EchoPage() {
