@@ -16,7 +16,9 @@ import {
   uuid,
   text,
   bigint,
+  integer,
   numeric,
+  boolean,
   timestamp,
   jsonb,
 } from "drizzle-orm/pg-core";
@@ -119,3 +121,106 @@ export type Client = typeof clients.$inferSelect;
 export type Echo = typeof echoes.$inferSelect;
 export type PortfolioMove = typeof portfolioMoves.$inferSelect;
 export type Activity = typeof activities.$inferSelect;
+
+/* ------------------------------------------------------------------ */
+/* Feature A — Passive CPD tracking                                    */
+/* ------------------------------------------------------------------ */
+
+/** Where a CPD credit came from. `minutes` is always decided by code, not AI. */
+export type CpdSourceType =
+  | "regulatory_brief"
+  | "market_update"
+  | "research"
+  | "seminar"
+  | "field_brief";
+
+/**
+ * Passive continuing-education credits. Each row is one verified learning event;
+ * `minutes` is computed deterministically by `lib/cpd.ts#creditFor` (never by the
+ * model or the request body). Mirrors the Neon `cpd_entries` table.
+ */
+export const cpdEntries = pgTable("cpd_entries", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  advisorId: uuid("advisor_id")
+    .notNull()
+    .references(() => advisors.id, { onDelete: "cascade" }),
+  sourceType: text("source_type").$type<CpdSourceType>().notNull(),
+  sourceRef: text("source_ref"),
+  category: text("category"),
+  minutes: integer("minutes").notNull(),
+  verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export type CpdEntry = typeof cpdEntries.$inferSelect;
+
+/* ------------------------------------------------------------------ */
+/* Feature B — Battlefield-brief library                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A reusable, de-identified "field brief" distilled from an advisor's voice note.
+ * Nothing is stored unscrubbed: `lib/scrub.ts` redacts PII before insert and
+ * `scrubbed` records that the gate ran. Mirrors the Neon `field_briefs` table.
+ */
+export const fieldBriefs = pgTable("field_briefs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  advisorId: uuid("advisor_id")
+    .notNull()
+    .references(() => advisors.id, { onDelete: "cascade" }),
+  transcript: text("transcript"),
+  summary: text("summary"),
+  problemDomain: text("problem_domain"),
+  tags: jsonb("tags").$type<string[]>(),
+  scrubbed: boolean("scrubbed").default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export type FieldBrief = typeof fieldBriefs.$inferSelect;
+
+/* ------------------------------------------------------------------ */
+/* Feature C — Partnership ecosystem                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Firm-level specialist partners (org-wide — no advisorId). The model only maps
+ * a stated need to `specializationTags`; success scores are computed in code.
+ * Mirrors the Neon `partners` table.
+ */
+export const partners = pgTable("partners", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  specialization: text("specialization"),
+  specializationTags: jsonb("specialization_tags").$type<string[]>(),
+  contactEmail: text("contact_email"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export type Partner = typeof partners.$inferSelect;
+
+/** Lifecycle of a partner introduction. */
+export type ReferralStatus = "introduced" | "responded" | "progressing" | "closed";
+
+/**
+ * A per-advisor introduction of a client to a partner. Success score and
+ * velocity are derived in code (`lib/partners.ts`) from these records — never
+ * invented. Mirrors the Neon `referrals` table.
+ */
+export const referrals = pgTable("referrals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  advisorId: uuid("advisor_id")
+    .notNull()
+    .references(() => advisors.id, { onDelete: "cascade" }),
+  clientId: uuid("client_id")
+    .notNull()
+    .references(() => clients.id, { onDelete: "cascade" }),
+  partnerId: uuid("partner_id")
+    .notNull()
+    .references(() => partners.id, { onDelete: "cascade" }),
+  status: text("status").$type<ReferralStatus>().notNull(),
+  introducedAt: timestamp("introduced_at", { withTimezone: true }).defaultNow(),
+  respondedAt: timestamp("responded_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export type Referral = typeof referrals.$inferSelect;

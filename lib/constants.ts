@@ -7,3 +7,9 @@ export const DEMO_ADVISOR_ID = "00000000-0000-0000-0000-000000000001";
 
 /** Confidence at/above this auto-commits; below it routes to Staging. */
 export const AUTO_COMMIT_THRESHOLD = 0.9;
+
+/**
+ * Annual continuing-professional-development requirement, in minutes
+ * (30 hours × 60). Used by `lib/cpd.ts#tallyCpd` to gauge progress.
+ */
+export const CPD_ANNUAL_REQUIREMENT_MINUTES = 30 * 60;

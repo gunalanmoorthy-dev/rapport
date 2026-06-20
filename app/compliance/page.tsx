@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app/app-shell";
 import { ComplianceLog, type ActivityView } from "@/components/app/compliance-log";
+import { CpdProgress } from "@/components/app/cpd-progress";
 import { getActivities } from "@/lib/queries";
 import { requireAdvisorId } from "@/lib/auth";
 import { formatDateTime } from "@/lib/display";
@@ -46,6 +47,9 @@ export default async function CompliancePage() {
         </div>
 
         <ComplianceLog items={items} />
+
+        {/* Feature A — passive CPD tracking (appended below the activity log) */}
+        <CpdProgress />
       </section>
     </AppShell>
   );

@@ -19,6 +19,8 @@ const appLinks = [
   { name: "Notes", href: "/notes" },
   { name: "Compliance", href: "/compliance" },
   { name: "Audit", href: "/audit" },
+  { name: "Library", href: "/library" },
+  { name: "Partners", href: "/partners" },
 ];
 
 function initials(name: string): string {
