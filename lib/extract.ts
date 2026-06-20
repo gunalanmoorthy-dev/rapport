@@ -1,4 +1,5 @@
-import { openai } from "./openai";
+import { Type } from "@google/genai";
+import { genai } from "./gemini";
 import type { MoveDirection } from "@/db/schema";
 
 /**
@@ -27,61 +28,55 @@ Rules:
 - "summary" is one concise sentence capturing the note.
 - "confidence" is 0 to 1. Lower it when the client is ambiguous, the figure is vague or unstated, the direction is unclear, or the intent is fuzzy.`;
 
-const RESPONSE_FORMAT = {
-  type: "json_schema" as const,
-  json_schema: {
-    name: "advisor_intent",
-    strict: true,
-    schema: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        matchedClientName: {
-          type: ["string", "null"],
-          description: "Exact client name from the provided list, or null.",
-        },
-        intents: {
-          type: "array",
-          items: { type: "string" },
-        },
-        move: {
-          type: ["object", "null"],
-          additionalProperties: false,
-          properties: {
-            amount: {
-              type: "number",
-              description: "Stated dollar figure (not cents). No arithmetic.",
-            },
-            direction: { type: "string", enum: ["in", "out"] },
-          },
-          required: ["amount", "direction"],
-        },
-        confidence: { type: "number" },
-        summary: { type: "string" },
-      },
-      required: ["matchedClientName", "intents", "move", "confidence", "summary"],
+// Gemini structured-output schema producing the exact RawExtraction shape.
+const RESPONSE_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    matchedClientName: {
+      type: Type.STRING,
+      nullable: true,
+      description: "Exact client name from the provided list, or null.",
     },
+    intents: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+    },
+    move: {
+      type: Type.OBJECT,
+      nullable: true,
+      description: "A stated money movement, or null if none.",
+      properties: {
+        amount: {
+          type: Type.NUMBER,
+          description: "Stated dollar figure (not cents). No arithmetic.",
+        },
+        direction: { type: Type.STRING, enum: ["in", "out"] },
+      },
+      required: ["amount", "direction"],
+    },
+    confidence: { type: Type.NUMBER },
+    summary: { type: Type.STRING },
   },
+  required: ["matchedClientName", "intents", "move", "confidence", "summary"],
+  propertyOrdering: ["matchedClientName", "intents", "move", "confidence", "summary"],
 };
 
 export async function extractIntent(
   transcript: string,
   clientNames: string[]
 ): Promise<RawExtraction> {
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    temperature: 0,
-    response_format: RESPONSE_FORMAT,
-    messages: [
-      { role: "system", content: SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: `Client list:\n${clientNames.map((n) => `- ${n}`).join("\n")}\n\nVoice note transcript:\n"""${transcript}"""`,
-      },
-    ],
+  const response = await genai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: `Client list:\n${clientNames.map((n) => `- ${n}`).join("\n")}\n\nVoice note transcript:\n"""${transcript}"""`,
+    config: {
+      systemInstruction: SYSTEM_PROMPT,
+      temperature: 0,
+      responseMimeType: "application/json",
+      responseSchema: RESPONSE_SCHEMA,
+    },
   });
 
-  const content = completion.choices[0]?.message?.content;
+  const content = response.text;
   if (!content) throw new Error("Model returned no content");
 
   const parsed = JSON.parse(content) as RawExtraction;
