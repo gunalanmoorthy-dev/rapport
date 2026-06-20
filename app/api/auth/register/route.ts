@@ -18,13 +18,15 @@ type RegisterBody = {
   workId?: string;
   password?: string;
   firm?: string;
+  role?: string;
 };
 
 /**
  * Create a new advisor account and sign them in. New advisors start with an
  * empty book of clients. Work id and email must be unique.
  *
- * @param req - JSON body `{ name, email, workId, password, firm? }`.
+ * @param req - JSON body `{ name, email, workId, password, firm?, role? }`
+ *   (`role` is `"advisor"` by default, or `"admin"`).
  * @returns `201 { name }` + a session cookie; `400` for missing/invalid fields;
  *          `409` if the work id or email is already taken.
  */
@@ -36,6 +38,10 @@ export async function POST(req: Request) {
     const workId = body.workId?.trim();
     const password = body.password ?? "";
     const firm = body.firm?.trim() || null;
+    // Self-service role choice. NOTE: this lets anyone register as an admin, who
+    // can then oversee every advisor in the firm they typed. Fine for the demo;
+    // in production this should be invite/approval-gated.
+    const role = body.role === "admin" ? "admin" : "advisor";
 
     if (!name || !email || !workId || !password) {
       return NextResponse.json(
@@ -62,11 +68,11 @@ export async function POST(req: Request) {
 
     const [advisor] = await db
       .insert(advisors)
-      .values({ name, email, workId, firm, passwordHash: hashPassword(password) })
+      .values({ name, email, workId, firm, role, passwordHash: hashPassword(password) })
       .returning();
 
-    await setSession(advisor.id, "advisor");
-    return NextResponse.json({ name: advisor.name, role: "advisor" }, { status: 201 });
+    await setSession(advisor.id, role);
+    return NextResponse.json({ name: advisor.name, role }, { status: 201 });
   } catch (err) {
     console.error("register error", err);
     // Unique-constraint race (work id / email) → friendly conflict.
