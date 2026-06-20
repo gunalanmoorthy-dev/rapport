@@ -1,8 +1,10 @@
 /**
- * Route guard. Verifies the session cookie on the edge and:
+ * Route guard (Next.js "proxy" convention — formerly `middleware.ts`). Verifies
+ * the session cookie on the edge and:
  *  - lets public routes through (landing, login, auth API, static assets),
  *  - redirects unauthenticated page requests to /login (preserving `from`),
- *  - returns 401 for unauthenticated API requests.
+ *  - returns 401 for unauthenticated API requests,
+ *  - keeps admins in /admin and advisors in the main app.
  *
  * Runs before every matched request; see `config.matcher`.
  */
@@ -12,7 +14,7 @@ import { SESSION_COOKIE, verifySession } from "@/lib/session";
 // Public paths that never require a session.
 const PUBLIC_PATHS = new Set(["/", "/login", "/signup"]);
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (PUBLIC_PATHS.has(pathname) || pathname.startsWith("/api/auth")) {

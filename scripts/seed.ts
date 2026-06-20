@@ -2,7 +2,8 @@
  * Seed script: three advisors (each with login credentials) and their client books.
  *
  * Idempotent — safe to re-run. Upserts the advisors by fixed id and replaces each
- * advisor's clients/activities/staged echoes. Run with: `pnpm run seed`.
+ * advisor's clients/activities/staged echoes, plus the org-wide partner ecosystem
+ * (partners + referrals) for the admin interface. Run with: `pnpm run seed`.
  *
  * Demo credentials (work id / password):
  *   ADV-001 / rapport2026  → Alex Donovan (advisor, 6 clients)
@@ -100,6 +101,37 @@ const stagedEchoesByWorkId: Record<
   ],
 };
 
+/** Firm-level (org-wide) specialist partners. Order matters — referral fixtures index into this. */
+const seedPartners: { name: string; specialization: string; tags: string[]; email: string }[] = [
+  { name: "Meridian Tax Advisory", specialization: "Tax & estate planning", tags: ["tax", "estate-planning"], email: "intros@meridiantax.com" },
+  { name: "Helios Private Lending", specialization: "Private credit & lending", tags: ["private-credit", "liquidity"], email: "deals@helioslending.com" },
+  { name: "Aster Legal Partners", specialization: "Trust & legal structuring", tags: ["legal", "trust", "estate-planning"], email: "hello@asterlegal.com" },
+  { name: "Nimbus Insurance Group", specialization: "Risk & insurance", tags: ["insurance", "risk"], email: "advisors@nimbusinsure.com" },
+  { name: "Vanta Real Estate Advisors", specialization: "Property & real assets", tags: ["real-estate", "liquidity"], email: "contact@vantare.com" },
+];
+
+type SeedReferralStatus = "introduced" | "responded" | "progressing" | "closed";
+
+/** Per-advisor introductions: clientIndex → partnerIndex with a lifecycle status. */
+const referralsByWorkId: Record<
+  string,
+  { clientIndex: number; partnerIndex: number; status: SeedReferralStatus; daysAgo: number }[]
+> = {
+  "ADV-001": [
+    { clientIndex: 0, partnerIndex: 0, status: "closed", daysAgo: 30 },
+    { clientIndex: 1, partnerIndex: 1, status: "progressing", daysAgo: 12 },
+    { clientIndex: 3, partnerIndex: 2, status: "responded", daysAgo: 6 },
+    { clientIndex: 4, partnerIndex: 3, status: "introduced", daysAgo: 2 },
+  ],
+  "ADV-002": [
+    { clientIndex: 0, partnerIndex: 0, status: "closed", daysAgo: 24 },
+  ],
+  "ADV-003": [
+    { clientIndex: 0, partnerIndex: 1, status: "progressing", daysAgo: 9 },
+    { clientIndex: 2, partnerIndex: 4, status: "introduced", daysAgo: 1 },
+  ],
+};
+
 async function main() {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is not set — add it to .env.local before seeding.");
@@ -107,7 +139,7 @@ async function main() {
 
   const { eq } = await import("drizzle-orm");
   const { db, pool } = await import("../db/client");
-  const { advisors, clients, activities, echoes } = await import("../db/schema");
+  const { advisors, clients, activities, echoes, partners, referrals } = await import("../db/schema");
   const { DEMO_ADVISOR_ID } = await import("../lib/constants");
   const { hashPassword } = await import("../lib/password");
 
@@ -190,10 +222,53 @@ async function main() {
     }
   }
 
+  // Partnership ecosystem: org-wide partners + per-advisor referrals.
+  // Clear children (referrals) before parents (partners) for the FK.
+  await db.delete(referrals);
+  await db.delete(partners);
+  const insertedPartners = await db
+    .insert(partners)
+    .values(
+      seedPartners.map((p) => ({
+        name: p.name,
+        specialization: p.specialization,
+        specializationTags: p.tags,
+        contactEmail: p.email,
+      }))
+    )
+    .returning();
+
+  let referralCount = 0;
+  for (const a of advisorRows) {
+    if (a.role !== "advisor") continue;
+    const fixtures = referralsByWorkId[a.workId] ?? [];
+    if (!fixtures.length) continue;
+    const advisorClients = await db.select().from(clients).where(eq(clients.advisorId, a.id));
+    const rows = fixtures
+      .map((f) => {
+        const client = advisorClients[f.clientIndex];
+        const partner = insertedPartners[f.partnerIndex];
+        if (!client || !partner) return null;
+        return {
+          advisorId: a.id,
+          clientId: client.id,
+          partnerId: partner.id,
+          status: f.status,
+          introducedAt: new Date(Date.now() - f.daysAgo * 86_400_000),
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+    if (rows.length) {
+      await db.insert(referrals).values(rows);
+      referralCount += rows.length;
+    }
+  }
+
   for (const a of advisorRows) {
     const rows = await db.select().from(clients).where(eq(clients.advisorId, a.id));
     console.log(`${a.workId} (${a.name}) · ${a.role} · password "${DEMO_PASSWORD}" · ${rows.length} clients`);
   }
+  console.log(`Ecosystem · ${insertedPartners.length} partners · ${referralCount} referrals`);
 
   await pool.end();
 }

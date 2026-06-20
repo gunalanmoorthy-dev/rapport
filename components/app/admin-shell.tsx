@@ -48,6 +48,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   };
 
   const onOverview = pathname === "/admin";
+  const onPartners = pathname.startsWith("/admin/partners");
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -69,6 +70,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 }`}
               >
                 Firm overview
+              </Link>
+              <Link
+                href="/admin/partners"
+                className={`text-xs font-mono uppercase tracking-wider transition-colors ${
+                  onPartners ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Partnerships
               </Link>
             </nav>
           </div>
