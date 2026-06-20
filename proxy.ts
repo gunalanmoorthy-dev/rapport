@@ -32,18 +32,26 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Role separation: admins live in /admin, advisors live in the main app.
-  const isAdmin = session.role === "admin";
+  // Role separation: admins live in /admin, partners live in /partner, and
+  // advisors live in the main app. Each role is kept inside its own area.
   const isAdminPath =
     pathname === "/admin" || pathname.startsWith("/admin/") || pathname.startsWith("/api/admin");
+  const isPartnerPath =
+    pathname === "/partner" || pathname.startsWith("/partner/") || pathname.startsWith("/api/partner");
 
-  if (isAdmin && !isAdminPath) {
-    if (isApi) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    return NextResponse.redirect(new URL("/admin", req.url));
-  }
-  if (!isAdmin && isAdminPath) {
-    if (isApi) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    return NextResponse.redirect(new URL("/digest", req.url));
+  const forbid = (home: string) =>
+    isApi
+      ? NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      : NextResponse.redirect(new URL(home, req.url));
+
+  if (session.role === "admin") {
+    if (!isAdminPath) return forbid("/admin");
+  } else if (session.role === "partner") {
+    if (!isPartnerPath) return forbid("/partner");
+  } else {
+    // advisor — kept out of both admin and partner areas
+    if (isAdminPath) return forbid("/digest");
+    if (isPartnerPath) return forbid("/digest");
   }
 
   return NextResponse.next();

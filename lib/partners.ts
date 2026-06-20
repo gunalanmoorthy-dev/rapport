@@ -22,6 +22,41 @@ export async function getPartners(): Promise<Partner[]> {
   return db.select().from(partners).orderBy(asc(partners.name));
 }
 
+/** Raw body shape accepted when adding a partner to the ecosystem. */
+export type NewPartnerInput = {
+  name?: string;
+  specialization?: string;
+  tags?: string; // comma-separated
+  contactEmail?: string;
+};
+
+/**
+ * Validate + insert a new ecosystem partner. Shared by the admin and partner
+ * add-partner routes so the parsing/insert logic lives in one place.
+ *
+ * @throws If `name` is blank.
+ */
+export async function createPartner(input: NewPartnerInput): Promise<Partner> {
+  const name = input.name?.trim();
+  if (!name) throw new Error("Partner name is required.");
+
+  const tags = (input.tags ?? "")
+    .split(",")
+    .map((t) => t.trim().toLowerCase())
+    .filter(Boolean);
+
+  const [partner] = await db
+    .insert(partners)
+    .values({
+      name,
+      specialization: input.specialization?.trim() || null,
+      specializationTags: tags.length ? tags : null,
+      contactEmail: input.contactEmail?.trim() || null,
+    })
+    .returning();
+  return partner;
+}
+
 /** A referral flattened with the names it links, for the admin pipeline view. */
 export type FirmReferral = {
   id: string;

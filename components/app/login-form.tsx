@@ -1,9 +1,10 @@
 "use client";
 
 /**
- * Sign-in form (work id + password) for both advisors and admins — the account's
- * role decides where you land. The Advisor/Admin toggle is a convenience that
- * sets the expected work-id format; the actual role always comes from the account.
+ * Sign-in form (work id + password) for advisors, admins, and partners. The
+ * Advisor/Admin/Partner tab is authoritative: it is sent to the API, which
+ * rejects credentials whose account role doesn't match the selected tab, and we
+ * route strictly by the account's role so you always land in the right area.
  *
  * On success we do a FULL-PAGE navigation (not router.replace) so the new session
  * cookie is seen by middleware and no stale, logged-out RSC payload is shown.
@@ -15,7 +16,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
-type Mode = "advisor" | "admin";
+type Mode = "advisor" | "admin" | "partner";
 
 export function LoginForm() {
   const params = useSearchParams();
@@ -35,13 +36,19 @@ export function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workId, password }),
+        body: JSON.stringify({ workId, password, role: mode }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "Login failed.");
+      // Route strictly by the account's role. Only honor `from` for advisors and
+      // only when it isn't a cross-role path, so an advisor never lands in the
+      // admin/partner area via a stale redirect target.
+      const safeFrom =
+        from.startsWith("/admin") || from.startsWith("/partner") ? "/digest" : from;
+      const dest =
+        json.role === "admin" ? "/admin" : json.role === "partner" ? "/partner" : safeFrom;
       // Hard navigation so middleware sees the cookie and we don't render a
       // cached logged-out view of the destination.
-      const dest = json.role === "admin" ? "/admin" : from;
       window.location.assign(dest);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
@@ -59,13 +66,16 @@ export function LoginForm() {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      {/* Advisor / Admin toggle */}
+      {/* Advisor / Admin / Partner toggle */}
       <div className="flex items-center gap-1 p-1 rounded-full border border-foreground/15 bg-foreground/[0.03]">
         <button type="button" className={tab("advisor")} onClick={() => setMode("advisor")}>
           Advisor
         </button>
         <button type="button" className={tab("admin")} onClick={() => setMode("admin")}>
           Admin
+        </button>
+        <button type="button" className={tab("partner")} onClick={() => setMode("partner")}>
+          Partner
         </button>
       </div>
 
@@ -77,7 +87,9 @@ export function LoginForm() {
           className={field}
           value={workId}
           onChange={(e) => setWorkId(e.target.value)}
-          placeholder={mode === "admin" ? "e.g. ADM-001" : "e.g. ADV-001"}
+          placeholder={
+            mode === "admin" ? "e.g. ADM-001" : mode === "partner" ? "e.g. PTR-001" : "e.g. ADV-001"
+          }
           autoFocus
           autoComplete="username"
         />
@@ -107,7 +119,13 @@ export function LoginForm() {
         disabled={busy}
         className="w-full h-11 rounded-full bg-foreground text-background hover:bg-foreground/90"
       >
-        {busy ? "Signing in…" : mode === "admin" ? "Sign in as admin" : "Sign in"}
+        {busy
+          ? "Signing in…"
+          : mode === "admin"
+            ? "Sign in as admin"
+            : mode === "partner"
+              ? "Sign in as partner"
+              : "Sign in"}
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">

@@ -69,3 +69,18 @@ export async function requireAdmin(): Promise<string> {
   if (session.role !== "admin") redirect("/digest");
   return session.advisorId;
 }
+
+/**
+ * Require an authenticated PARTNER. Redirects to `/login` if signed out, or to
+ * the role's home if the user is not a partner.
+ *
+ * @returns The partner's account id.
+ */
+export async function requirePartner(): Promise<string> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  if (session.role !== "partner") {
+    redirect(session.role === "admin" ? "/admin" : "/digest");
+  }
+  return session.advisorId;
+}

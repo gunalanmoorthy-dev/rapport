@@ -13,7 +13,12 @@ import { Handshake } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
-export function AdminAddPartner() {
+export function AdminAddPartner({
+  endpoint = "/api/admin/partners",
+}: {
+  /** API route the form posts to (admins and partners use different routes). */
+  endpoint?: string;
+} = {}) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [specialization, setSpecialization] = useState("");
@@ -28,7 +33,7 @@ export function AdminAddPartner() {
     }
     setBusy(true);
     try {
-      const res = await fetch("/api/admin/partners", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, specialization, contactEmail, referralCode }),

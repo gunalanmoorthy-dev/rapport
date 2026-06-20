@@ -10,6 +10,7 @@
  *   ADV-002 / rapport2026  → Jordan Avery (advisor, 2 clients)
  *   ADV-003 / rapport2026  → Riley Chen (advisor, 3 clients)
  *   ADM-001 / rapport2026  → Morgan Reyes (admin, firm oversight)
+ *   PTR-001 / rapport2026  → Casey Lin (partner, ecosystem view)
  *
  * @module scripts/seed
  */
@@ -22,6 +23,7 @@ const dollars = (d: number) => Math.round(d * 100);
 const ADVISOR_2_ID = "00000000-0000-0000-0000-000000000002";
 const ADMIN_ID = "00000000-0000-0000-0000-000000000003";
 const ADVISOR_3_ID = "00000000-0000-0000-0000-000000000004";
+const PARTNER_ID = "00000000-0000-0000-0000-000000000005";
 const DEMO_PASSWORD = "rapport2026";
 
 const clientsByAdvisorWorkId: Record<
@@ -150,6 +152,7 @@ async function main() {
     { id: ADVISOR_2_ID, email: "jordan@rapport.demo", name: "Jordan Avery", firm: "Rapport Wealth Partners", workId: "ADV-002", role: "advisor" as const },
     { id: ADVISOR_3_ID, email: "riley@rapport.demo", name: "Riley Chen", firm: "Rapport Wealth Partners", workId: "ADV-003", role: "advisor" as const },
     { id: ADMIN_ID, email: "morgan@rapport.demo", name: "Morgan Reyes", firm: "Rapport Wealth Partners", workId: "ADM-001", role: "admin" as const },
+    { id: PARTNER_ID, email: "casey@rapport.demo", name: "Casey Lin", firm: "Rapport Wealth Partners", workId: "PTR-001", role: "partner" as const },
   ];
 
   for (const a of advisorRows) {

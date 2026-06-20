@@ -1,9 +1,9 @@
 /**
- * `POST /api/admin/partners` — an admin adds a firm partner to the ecosystem.
- * Admin-only. Partners are org-wide (no advisor scope), so any admin in the firm
- * may extend the shared partner directory.
+ * `POST /api/partner/partners` — a partner adds a firm partner to the ecosystem.
+ * Partner-only (admins use `/api/admin/partners`). Partners are org-wide (no
+ * advisor scope), so any signed-in partner may extend the shared directory.
  *
- * @module api/admin/partners
+ * @module api/partner/partners
  */
 import { NextResponse } from "next/server";
 import { createPartner, type NewPartnerInput } from "@/lib/partners";
@@ -13,7 +13,7 @@ export const runtime = "nodejs";
 
 /**
  * @param req - JSON `{ name, specialization?, tags?, contactEmail? }`.
- * @returns `201 { partner }`; `400` invalid; `401` not signed in; `403` not admin.
+ * @returns `201 { partner }`; `400` invalid; `401` not signed in; `403` not a partner.
  */
 export async function POST(req: Request) {
   try {
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (session.role !== "admin") {
+    if (session.role !== "partner") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     const partner = await createPartner(body);
     return NextResponse.json({ partner }, { status: 201 });
   } catch (err) {
-    console.error("admin add partner error", err);
+    console.error("partner add partner error", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to add partner." },
       { status: 500 }

@@ -20,9 +20,10 @@ export const runtime = "nodejs";
  */
 export async function POST(req: Request) {
   try {
-    const { workId, password } = (await req.json()) as {
+    const { workId, password, role: expectedRole } = (await req.json()) as {
       workId?: string;
       password?: string;
+      role?: string; // the tab the user picked (advisor | admin | partner)
     };
     if (!workId?.trim() || !password) {
       return NextResponse.json(
@@ -40,6 +41,17 @@ export async function POST(req: Request) {
     }
 
     const role = advisor.role ?? "advisor";
+
+    // The login tab is authoritative: an account may only sign in through the
+    // tab matching its role, so an advisor can never land in the admin/partner
+    // area (and vice versa).
+    if (expectedRole && role !== expectedRole) {
+      return NextResponse.json(
+        { error: `This is a ${role} account — switch to the "${role}" tab to sign in.` },
+        { status: 403 }
+      );
+    }
+
     await setSession(advisor.id, role);
     return NextResponse.json({ name: advisor.name, role });
   } catch (err) {
