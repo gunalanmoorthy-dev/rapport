@@ -8,7 +8,7 @@
  *
  * @module lib/queries
  */
-import { and, asc, desc, eq, max } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, max } from "drizzle-orm";
 import { db } from "@/db/client";
 import { activities, advisors, clients, echoes, portfolioMoves } from "@/db/schema";
 import type { Activity, Advisor, Client, Echo, PortfolioMove } from "@/db/schema";
@@ -168,6 +168,29 @@ export async function getStagedEchoes(advisorId: string): Promise<StagedEcho[]> 
     .from(echoes)
     .leftJoin(clients, eq(echoes.clientId, clients.id))
     .where(and(eq(echoes.advisorId, advisorId), eq(echoes.status, "staged")))
+    .orderBy(desc(echoes.createdAt));
+}
+
+/**
+ * Every captured echo for the Staging log — both `staged` (needs review) and
+ * `committed` (auto-applied). The Staging page is a per-client capture log, not
+ * just a review queue, so high-confidence briefs that auto-commit still show
+ * here with their AI summary.
+ *
+ * @param advisorId - The signed-in advisor's id.
+ * @returns Captured echoes each paired with their client row (or `null`).
+ */
+export async function getCapturedEchoes(advisorId: string): Promise<StagedEcho[]> {
+  return db
+    .select({ echo: echoes, client: clients })
+    .from(echoes)
+    .leftJoin(clients, eq(echoes.clientId, clients.id))
+    .where(
+      and(
+        eq(echoes.advisorId, advisorId),
+        inArray(echoes.status, ["staged", "committed"])
+      )
+    )
     .orderBy(desc(echoes.createdAt));
 }
 

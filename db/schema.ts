@@ -18,7 +18,6 @@ import {
   bigint,
   integer,
   numeric,
-  boolean,
   timestamp,
   jsonb,
 } from "drizzle-orm/pg-core";
@@ -159,31 +158,7 @@ export const cpdEntries = pgTable("cpd_entries", {
 export type CpdEntry = typeof cpdEntries.$inferSelect;
 
 /* ------------------------------------------------------------------ */
-/* Feature B — Battlefield-brief library                               */
-/* ------------------------------------------------------------------ */
-
-/**
- * A reusable, de-identified "field brief" distilled from an advisor's voice note.
- * Nothing is stored unscrubbed: `lib/scrub.ts` redacts PII before insert and
- * `scrubbed` records that the gate ran. Mirrors the Neon `field_briefs` table.
- */
-export const fieldBriefs = pgTable("field_briefs", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  advisorId: uuid("advisor_id")
-    .notNull()
-    .references(() => advisors.id, { onDelete: "cascade" }),
-  transcript: text("transcript"),
-  summary: text("summary"),
-  problemDomain: text("problem_domain"),
-  tags: jsonb("tags").$type<string[]>(),
-  scrubbed: boolean("scrubbed").default(false),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
-
-export type FieldBrief = typeof fieldBriefs.$inferSelect;
-
-/* ------------------------------------------------------------------ */
-/* Feature C — Partnership ecosystem                                   */
+/* Partnership ecosystem                                               */
 /* ------------------------------------------------------------------ */
 
 /**

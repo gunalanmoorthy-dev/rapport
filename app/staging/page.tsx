@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app/app-shell";
 import { StagingLog, type StagingGroup } from "@/components/app/staging-log";
-import { getStagedEchoes } from "@/lib/queries";
+import { getCapturedEchoes } from "@/lib/queries";
 import { requireAdvisorId } from "@/lib/auth";
 import { formatDateTime } from "@/lib/display";
 
@@ -14,11 +14,11 @@ export const dynamic = "force-dynamic";
 
 export default async function StagingPage() {
   const advisorId = await requireAdvisorId();
-  const staged = await getStagedEchoes(advisorId);
+  const captured = await getCapturedEchoes(advisorId);
 
-  // Group staged echoes by client (unmatched briefs go in their own bucket).
+  // Group captured echoes by client (unmatched briefs go in their own bucket).
   const groups = new Map<string, StagingGroup>();
-  for (const { echo, client } of staged) {
+  for (const { echo, client } of captured) {
     const key = client?.id ?? "__unmatched__";
     if (!groups.has(key)) {
       groups.set(key, {
@@ -36,6 +36,7 @@ export default async function StagingPage() {
       intents: echo.extracted?.intents ?? [],
       move: echo.extracted?.move ?? null,
       confidence: Number(echo.confidence ?? 0),
+      status: echo.status === "committed" ? "committed" : "staged",
       when: formatDateTime(echo.createdAt ? new Date(echo.createdAt) : null),
     });
   }

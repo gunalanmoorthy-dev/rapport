@@ -2,7 +2,7 @@
   "name": "rapport",
   "version": "0.1.0",
   "private": true,
-  "description": "The advisor's silent back-office — a 60-second voice note becomes verified CRM, compliance, and portfolio updates.",
+  "description": "The advisor's silent back-office — a spoken voice note becomes verified CRM, compliance, and portfolio updates.",
   "license": "MIT",
   "scripts": {
     "dev": "next dev",

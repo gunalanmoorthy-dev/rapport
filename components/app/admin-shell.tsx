@@ -3,7 +3,7 @@
 /**
  * Chrome for the admin oversight area. Mirrors AppShell but with an admin-only
  * nav (firm overview), an "Admin" badge, the theme toggle, and sign-out. Admins
- * never see the advisor nav (Notes/Library/Echo are out of scope for them).
+ * never see the advisor nav (Notes/Echo are out of scope for them).
  *
  * @module components/app/admin-shell
  */

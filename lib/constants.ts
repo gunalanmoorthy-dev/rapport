@@ -1,7 +1,8 @@
 /**
- * Auth is intentionally trivial for the demo: there is no login. Every server
- * action and query runs as this one seeded advisor. The seed script inserts the
- * advisor row with exactly this id so the two stay in sync.
+ * The id of the primary seeded advisor (ADV-001, Alex Donovan). The seed script
+ * inserts that advisor row with exactly this id so fixtures and scripts can
+ * reference a known advisor without a lookup. The live app is multi-advisor with
+ * real login — see `lib/auth.ts`.
  */
 export const DEMO_ADVISOR_ID = "00000000-0000-0000-0000-000000000001";
 

@@ -23,6 +23,7 @@ type StagedEchoView = {
   intents: string[];
   move: { amountCents: number; direction: "in" | "out" } | null;
   confidence: number;
+  status: "staged" | "committed";
   when: string;
 };
 
@@ -145,7 +146,18 @@ function ClientSection({ group }: { group: StagingGroup }) {
         {group.echoes.map((echo) => (
           <div key={echo.id} className="px-6 py-6">
             <div className="flex items-center justify-between mb-3 text-xs font-mono text-muted-foreground">
-              <span>{echo.when}</span>
+              <span className="flex items-center gap-2">
+                <span
+                  className={`px-2 py-0.5 rounded-full border text-[10px] uppercase tracking-wider ${
+                    echo.status === "committed"
+                      ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+                      : "border-amber-400/30 bg-amber-400/10 text-amber-300"
+                  }`}
+                >
+                  {echo.status === "committed" ? "Committed" : "Staged"}
+                </span>
+                {echo.when}
+              </span>
               <span>{Math.round(echo.confidence * 100)}% confidence</span>
             </div>
             <div className="grid md:grid-cols-2 gap-4">

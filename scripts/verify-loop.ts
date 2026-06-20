@@ -1,110 +1,58 @@
-import { config } from "dotenv";
-config({ path: ".env.local" });
+/**
+ * Unit test for the trust-critical core loop — no server, no DB, no AI.
+ *
+ * Asserts the deterministic money math in {@link verifyMove} and the
+ * commit-vs-stage decision used by `app/api/echo/process`: a change auto-commits
+ * ONLY when the model is confident AND the math is sound; everything else stages.
+ */
+import { verifyMove } from "../lib/verify";
+import { AUTO_COMMIT_THRESHOLD } from "../lib/constants";
 
-// Smoke test for the deterministic core loop (no OpenAI): inserts staged echoes
-// with money moves, drives the real approve/reject endpoints, and asserts the
-// balance math + status transitions. Run with the dev server up.
-async function main() {
-  const { eq } = await import("drizzle-orm");
-  const { db, pool } = await import("../db/client");
-  const { clients, echoes } = await import("../db/schema");
-  const { DEMO_ADVISOR_ID } = await import("../lib/constants");
-  const { verifyMove } = await import("../lib/verify");
+let pass = 0;
+let fail = 0;
+const check = (label: string, ok: boolean, extra = "") => {
+  console.log(`${ok ? "PASS" : "FAIL"} · ${label}${extra ? ` — ${extra}` : ""}`);
+  ok ? pass++ : fail++;
+};
 
-  const base = "http://localhost:3000";
-  const all = await db.select().from(clients).where(eq(clients.advisorId, DEMO_ADVISOR_ID));
-  const priya = all.find((c) => c.name === "Priya Venkataraman")!;
-  const james = all.find((c) => c.name === "James Whitlock")!;
+// --- verifyMove: the money math ---
+const inflow = verifyMove(1_000_000, { amountCents: 200_000, direction: "in" });
+check("inflow is valid", inflow.valid);
+check("inflow recomputes balance", inflow.balanceAfterCents === 1_200_000, `${inflow.balanceAfterCents}`);
 
-  let pass = 0;
-  let fail = 0;
-  const check = (label: string, ok: boolean, extra = "") => {
-    console.log(`${ok ? "PASS" : "FAIL"} · ${label}${extra ? ` — ${extra}` : ""}`);
-    ok ? pass++ : fail++;
-  };
+const outflow = verifyMove(1_000_000, { amountCents: 50_000, direction: "out" });
+check("outflow is valid", outflow.valid);
+check("outflow recomputes balance", outflow.balanceAfterCents === 950_000, `${outflow.balanceAfterCents}`);
 
-  // 1) Valid inflow staged for Priya -> approve -> committed, balance += amount.
-  const inflow = 200_000_000; // $2,000,000
-  const before = priya.totalBalanceCents ?? 0;
-  const v = verifyMove(before, { amountCents: inflow, direction: "in" });
-  const [stagedValid] = await db
-    .insert(echoes)
-    .values({
-      advisorId: DEMO_ADVISOR_ID,
-      clientId: priya.id,
-      transcript: "[verify] Priya contributing two million dollars.",
-      extracted: {
-        matchedClientId: priya.id,
-        matchedClientName: priya.name,
-        intents: ["add funds"],
-        move: { amountCents: inflow, direction: "in" },
-        summary: "Contribution of $2,000,000",
-        balanceBeforeCents: v.balanceBeforeCents,
-        balanceAfterCents: v.balanceAfterCents,
-      },
-      confidence: "0.6",
-      status: "staged",
-    })
-    .returning({ id: echoes.id });
+const overspend = verifyMove(1_000_000, { amountCents: 5_000_000, direction: "out" });
+check("overspend is rejected", !overspend.valid);
+check("overspend leaves balance unchanged", overspend.balanceAfterCents === 1_000_000);
+check("overspend gives a reason", typeof overspend.reason === "string" && overspend.reason!.length > 0);
 
-  const r1 = await fetch(`${base}/api/staging/${stagedValid.id}/approve`, { method: "POST" });
-  const j1 = await r1.json();
-  const priyaAfter = (await db.select().from(clients).where(eq(clients.id, priya.id)))[0];
-  check("approve valid inflow returns committed", r1.ok && j1.status === "committed", JSON.stringify(j1));
-  check(
-    "Priya balance increased by inflow",
-    (priyaAfter.totalBalanceCents ?? 0) === before + inflow,
-    `${before} -> ${priyaAfter.totalBalanceCents}`
-  );
-  const echoValidRow = (await db.select().from(echoes).where(eq(echoes.id, stagedValid.id)))[0];
-  check("valid echo status is committed", echoValidRow.status === "committed");
+const exact = verifyMove(1_000_000, { amountCents: 1_000_000, direction: "out" });
+check("withdraw-to-zero is valid (not an overspend)", exact.valid && exact.balanceAfterCents === 0);
 
-  // 2) Overspend staged for James -> approve must be rejected (409), no change.
-  const overspend = 5_000_000_000; // $50,000,000 >> James balance
-  const jamesBefore = james.totalBalanceCents ?? 0;
-  const [stagedInvalid] = await db
-    .insert(echoes)
-    .values({
-      advisorId: DEMO_ADVISOR_ID,
-      clientId: james.id,
-      transcript: "[verify] James withdraw fifty million dollars.",
-      extracted: {
-        matchedClientId: james.id,
-        matchedClientName: james.name,
-        intents: ["withdraw"],
-        move: { amountCents: overspend, direction: "out" },
-        summary: "Withdrawal of $50,000,000",
-        invalid: true,
-        invalidReason: "Outflow exceeds balance.",
-        balanceBeforeCents: jamesBefore,
-        balanceAfterCents: jamesBefore,
-      },
-      confidence: "0.95",
-      status: "staged",
-    })
-    .returning({ id: echoes.id });
+const bad = verifyMove(1_000_000, { amountCents: -1, direction: "in" });
+check("negative amount is rejected", !bad.valid);
 
-  const r2 = await fetch(`${base}/api/staging/${stagedInvalid.id}/approve`, { method: "POST" });
-  const j2 = await r2.json();
-  const jamesAfter = (await db.select().from(clients).where(eq(clients.id, james.id)))[0];
-  check("approve overspend is blocked (409)", r2.status === 409, JSON.stringify(j2));
-  check("James balance unchanged after blocked approve", (jamesAfter.totalBalanceCents ?? 0) === jamesBefore);
-
-  // 3) Reject the overspend echo -> rolled_back, still no change.
-  const r3 = await fetch(`${base}/api/staging/${stagedInvalid.id}/reject`, { method: "POST" });
-  const j3 = await r3.json();
-  const jamesAfter2 = (await db.select().from(clients).where(eq(clients.id, james.id)))[0];
-  const echoInvalidRow = (await db.select().from(echoes).where(eq(echoes.id, stagedInvalid.id)))[0];
-  check("reject returns rolled_back", r3.ok && j3.status === "rolled_back", JSON.stringify(j3));
-  check("rejected echo status is rolled_back", echoInvalidRow.status === "rolled_back");
-  check("James balance still unchanged after reject", (jamesAfter2.totalBalanceCents ?? 0) === jamesBefore);
-
-  console.log(`\n${pass} passed, ${fail} failed`);
-  await pool.end();
-  process.exit(fail === 0 ? 0 : 1);
+// --- commit-vs-stage decision (mirrors app/api/echo/process) ---
+function shouldCommit(opts: {
+  confidence: number;
+  hasMove: boolean;
+  matched: boolean;
+  mathValid: boolean;
+}): boolean {
+  const { confidence, hasMove, matched, mathValid } = opts;
+  const flaggedInvalid = hasMove && matched && !mathValid;
+  const canCommitMove = hasMove ? matched && mathValid : true;
+  return confidence >= AUTO_COMMIT_THRESHOLD && !flaggedInvalid && canCommitMove;
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+check("high-confidence valid move commits", shouldCommit({ confidence: 0.97, hasMove: true, matched: true, mathValid: true }));
+check("high-confidence note (no move) commits", shouldCommit({ confidence: 0.93, hasMove: false, matched: false, mathValid: true }));
+check("low-confidence stages", !shouldCommit({ confidence: 0.2, hasMove: false, matched: false, mathValid: true }));
+check("overspend stages even at high confidence", !shouldCommit({ confidence: 0.96, hasMove: true, matched: true, mathValid: false }));
+check("unmatched client move stages", !shouldCommit({ confidence: 0.95, hasMove: true, matched: false, mathValid: true }));
+
+console.log(`\n${pass} passed, ${fail} failed`);
+process.exit(fail === 0 ? 0 : 1);

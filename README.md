@@ -1,6 +1,6 @@
 # Rapport
 
-**The advisor's silent back-office.** Rapport turns a 60-second voice note into verified CRM updates, compliance logs, and portfolio reconciliation — so financial advisors stay with their clients, not their keyboards.
+**The advisor's silent back-office.** Rapport turns a spoken voice note into verified CRM updates, compliance logs, and portfolio reconciliation — so financial advisors stay with their clients, not their keyboards.
 
 ## Team — 1MAS
 
@@ -12,7 +12,7 @@
 
 ## What it does
 
-After a client meeting, an advisor records a 60-second voice brief (an "Echo") in plain, unstructured speech. From that single recording, Rapport:
+After a client meeting, an advisor records a quick voice brief (an "Echo") in plain, unstructured speech. From that single recording, Rapport:
 
 1. **Transcribes** the audio (Gemini).
 2. **Extracts** structured intent — which client, what changed, any portfolio move — as verified JSON.
