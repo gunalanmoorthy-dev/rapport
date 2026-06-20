@@ -5,6 +5,7 @@
  */
 import { NextResponse } from "next/server";
 import { genai } from "@/lib/gemini";
+import { isAiMock, mockTranscribe } from "@/lib/ai-mock";
 
 // Node runtime: we read the uploaded file into a Buffer (not available on edge).
 export const runtime = "nodejs";
@@ -22,6 +23,11 @@ export const maxDuration = 60;
  */
 export async function POST(req: Request) {
   try {
+    // Offline demo path — return a canned transcript, ignore the audio.
+    if (isAiMock()) {
+      return NextResponse.json({ transcript: await mockTranscribe() });
+    }
+
     const form = await req.formData();
     const audio = form.get("audio");
 

@@ -10,6 +10,7 @@
  */
 import { Type } from "@google/genai";
 import { genai } from "./gemini";
+import { isAiMock, mockExtractIntent } from "./ai-mock";
 import type { MoveDirection } from "@/db/schema";
 
 /**
@@ -89,6 +90,9 @@ export async function extractIntent(
   transcript: string,
   clientNames: string[]
 ): Promise<RawExtraction> {
+  // Offline demo path — no Gemini call. See lib/ai-mock.ts.
+  if (isAiMock()) return mockExtractIntent(transcript);
+
   const response = await genai.models.generateContent({
     model: "gemini-2.5-flash",
     contents: `Client list:\n${clientNames.map((n) => `- ${n}`).join("\n")}\n\nVoice note transcript:\n"""${transcript}"""`,
