@@ -86,6 +86,12 @@ export default async function ClientDetailPage({
             <p className="text-sm font-mono text-muted-foreground">
               {householdLabel(client.name)}
             </p>
+            {(client.email || client.phone) && (
+              <p className="text-sm font-mono text-muted-foreground mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+                {client.email && <span>{client.email}</span>}
+                {client.phone && <span>{client.phone}</span>}
+              </p>
+            )}
             <p className="text-sm text-muted-foreground mt-3 max-w-md leading-relaxed">
               {sentimentNote(client.sentiment)}
             </p>

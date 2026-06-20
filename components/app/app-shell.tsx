@@ -14,10 +14,9 @@ const appLinks = [
   { name: "Echo", href: "/echo" },
   { name: "Clients", href: "/clients" },
   { name: "Staging", href: "/staging" },
-  { name: "Vitality", href: "/vitality" },
+  { name: "Notes", href: "/notes" },
   { name: "Compliance", href: "/compliance" },
   { name: "Audit", href: "/audit" },
-  { name: "Synergy", href: "/synergy" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

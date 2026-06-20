@@ -18,7 +18,7 @@ const footerLinks = {
   ],
   Platform: [
     { name: "Morning brief", href: "/digest" },
-    { name: "Vitality", href: "/vitality" },
+    { name: "Notes", href: "/notes" },
     { name: "Compliance", href: "/compliance" },
     { name: "Audit trail", href: "/audit" },
   ],

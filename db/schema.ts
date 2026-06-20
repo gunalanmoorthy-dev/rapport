@@ -24,6 +24,8 @@ import {
 export type Sentiment = "green" | "amber" | "red";
 export type EchoStatus = "committed" | "staged" | "rolled_back";
 export type MoveDirection = "in" | "out";
+/** A client is `pending` until an advisor approves it into the active book. */
+export type ClientStatus = "pending" | "active";
 
 /** Shape of the structured intent the model extracts from a voice brief. */
 export type ExtractedIntent = {
@@ -59,6 +61,12 @@ export const clients = pgTable("clients", {
   name: text("name"),
   totalBalanceCents: bigint("total_balance_cents", { mode: "number" }).default(0),
   sentiment: text("sentiment").$type<Sentiment>(),
+  email: text("email"),
+  phone: text("phone"),
+  // 'pending' until an advisor approves the record into the active book.
+  status: text("status").$type<ClientStatus>().default("active"),
+  // Free-text advisor note (the "Notes" screen). Advisor decides what goes here.
+  note: text("note"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
@@ -88,7 +96,23 @@ export const portfolioMoves = pgTable("portfolio_moves", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+/**
+ * Continuing-education activities and seminars (the Compliance screen). Includes
+ * a `scheduledAt` so advisors can log upcoming sessions, not just past ones.
+ */
+export const activities = pgTable("activities", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  advisorId: uuid("advisor_id")
+    .notNull()
+    .references(() => advisors.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  category: text("category"),
+  scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
 export type Advisor = typeof advisors.$inferSelect;
 export type Client = typeof clients.$inferSelect;
 export type Echo = typeof echoes.$inferSelect;
 export type PortfolioMove = typeof portfolioMoves.$inferSelect;
+export type Activity = typeof activities.$inferSelect;

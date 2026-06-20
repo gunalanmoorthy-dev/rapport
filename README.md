@@ -17,7 +17,7 @@ After a client meeting, an advisor records a 60-second voice brief (an "Echo") i
 1. **Transcribes** the audio (Gemini).
 2. **Extracts** structured intent — which client, what changed, any portfolio move — as verified JSON.
 3. **Verifies the math in code, never by the AI.** Every figure is checked against the client's actual balance; an overspend or invalid move is rejected before it can touch the database.
-4. **Commits or stages by confidence.** High-confidence, math-valid updates auto-commit to the database. Anything ambiguous routes to a review queue where the advisor approves or rejects via a clean before/after diff.
+4. **Commits or stages by confidence.** High-confidence, math-valid updates auto-commit to the database. Anything ambiguous (low confidence, unmatched client, or an overspend) is captured in a per-client Staging log — the full transcript next to the AI's pinpoint summary — so nothing risky is applied silently.
 
 The result: the administrative burden disappears, while the advisor keeps full control and the AI never touches the client.
 
@@ -105,23 +105,28 @@ Push to `main` — Vercel auto-deploys. Set `DATABASE_URL` and `GEMINI_API_KEY` 
 ```
 app/            Next.js App Router pages and API routes
   echo/         Voice-brief recording screen
-  clients/      Client book of business (+ detail and printable brief)
-  staging/      Low-confidence review queue (approve/reject diffs)
+  clients/      Book of business — add/edit/delete + approve pending (+ detail, brief)
+  staging/      Per-client log: full transcript vs. AI summary, editable contacts
+  notes/        Free-text note per client
+  compliance/   Activities & seminars (past + upcoming), with an add form
+  digest/ audit/ Morning brief + immutable audit trail
   api/
     echo/       transcribe + process (Gemini) pipeline routes
-    staging/    approve / reject actions
+    clients/    create / edit / approve / delete
+    activities/ create / delete
 db/             Drizzle schema and database client
-lib/            Extraction (AI), verification (code), queries, display helpers
-scripts/        Seed script + a smoke test for the commit/approve/reject loop
+lib/            Extraction (AI), verification (code), queries, display helpers, AI mock
+scripts/        Seed, additive schema migration, and a commit-loop smoke test
 components/     UI components (in-app + landing)
 ```
 
 ## Database schema
 
 - **advisors** — the advisor account
-- **clients** — each advisor's clients, with balance (integer cents) and sentiment (green/amber/red)
+- **clients** — each advisor's clients: balance (integer cents), sentiment (green/amber/red), email, phone, approval `status` (pending/active), and a free-text `note`
 - **echoes** — every voice brief: transcript, extracted JSON, confidence, status (committed/staged/rolled_back)
 - **portfolio_moves** — committed money movements, linked to the echo that produced them
+- **activities** — continuing-education activities/seminars (title, category, `scheduled_at`) for the Compliance log
 
 ## License
 

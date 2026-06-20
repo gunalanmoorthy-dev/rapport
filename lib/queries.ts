@@ -7,10 +7,10 @@
  *
  * @module lib/queries
  */
-import { and, desc, eq, max } from "drizzle-orm";
+import { and, asc, desc, eq, max } from "drizzle-orm";
 import { db } from "@/db/client";
-import { clients, echoes, portfolioMoves } from "@/db/schema";
-import type { Client, Echo, PortfolioMove } from "@/db/schema";
+import { activities, clients, echoes, portfolioMoves } from "@/db/schema";
+import type { Activity, Client, Echo, PortfolioMove } from "@/db/schema";
 import { DEMO_ADVISOR_ID } from "./constants";
 
 const UUID_RE =
@@ -133,4 +133,17 @@ export async function getStagedEchoes(): Promise<StagedEcho[]> {
     )
     .orderBy(desc(echoes.createdAt));
   return rows;
+}
+
+/**
+ * All continuing-education activities for the advisor, soonest scheduled first.
+ *
+ * @returns Activity rows ordered by `scheduledAt` ascending (nulls last).
+ */
+export async function getActivities(): Promise<Activity[]> {
+  return db
+    .select()
+    .from(activities)
+    .where(eq(activities.advisorId, DEMO_ADVISOR_ID))
+    .orderBy(asc(activities.scheduledAt));
 }
