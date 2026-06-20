@@ -1,11 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Mic, Square, Check } from "lucide-react";
 import { toast } from "sonner";
-import { liveTranscript } from "@/lib/mock-data";
+import { formatCents } from "@/lib/mock-data";
 
 type Phase = "idle" | "recording" | "processing" | "done";
+
+type ProcessResult = {
+  status: "committed" | "staged";
+  reason: string;
+  confidence: number;
+  clientName: string | null;
+  move: { amountCents: number; direction: "in" | "out" } | null;
+  balanceAfterCents: number | null;
+  invalid?: boolean;
+};
 
 const MAX_SECONDS = 60;
 
@@ -13,31 +24,71 @@ const MAX_SECONDS = 60;
 const WAVE_BARS = [0.4, 0.7, 0.95, 0.55, 0.8, 0.35, 0.6, 0.9, 0.45, 0.75, 0.5, 0.85, 0.3, 0.65, 0.95, 0.5, 0.7, 0.4];
 
 export function EchoRecorder() {
+  const router = useRouter();
   const [phase, setPhase] = useState<Phase>("idle");
   const [seconds, setSeconds] = useState(0);
-  const [lines, setLines] = useState<string[]>([]);
-  const [partial, setPartial] = useState("");
+  const [transcript, setTranscript] = useState("");
+  const [result, setResult] = useState<ProcessResult | null>(null);
+  const [processStep, setProcessStep] = useState<"transcribing" | "extracting" | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lineTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const phaseTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
 
-  const clearAll = () => {
+  const stopTimer = () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    lineTimers.current.forEach(clearTimeout);
-    lineTimers.current = [];
-    phaseTimers.current.forEach(clearTimeout);
-    phaseTimers.current = [];
+    timerRef.current = null;
   };
 
-  useEffect(() => clearAll, []);
+  const releaseStream = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  };
 
-  const start = () => {
-    setPhase("recording");
+  useEffect(() => {
+    return () => {
+      stopTimer();
+      releaseStream();
+    };
+  }, []);
+
+  const start = async () => {
+    setResult(null);
+    setTranscript("");
     setSeconds(0);
-    setLines([]);
-    setPartial("");
 
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      toast.error("Microphone not available in this browser.");
+      return;
+    }
+
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      toast.error("Microphone permission denied.");
+      return;
+    }
+
+    streamRef.current = stream;
+    chunksRef.current = [];
+
+    const recorder = new MediaRecorder(stream);
+    recorderRef.current = recorder;
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunksRef.current.push(e.data);
+    };
+    recorder.onstop = () => {
+      const blob = new Blob(chunksRef.current, {
+        type: recorder.mimeType || "audio/webm",
+      });
+      releaseStream();
+      void handleProcess(blob);
+    };
+    recorder.start();
+
+    setPhase("recording");
     timerRef.current = setInterval(() => {
       setSeconds((s) => {
         if (s + 1 >= MAX_SECONDS) {
@@ -47,43 +98,77 @@ export function EchoRecorder() {
         return s + 1;
       });
     }, 1000);
-
-    // Stream the mock transcript line by line
-    liveTranscript.forEach((line, i) => {
-      const t = setTimeout(() => {
-        setPartial(line);
-        const commit = setTimeout(() => {
-          setLines((prev) => [...prev, line]);
-          setPartial("");
-        }, 900);
-        lineTimers.current.push(commit);
-      }, i * 1800 + 600);
-      lineTimers.current.push(t);
-    });
-  };
-
-  const finishProcessing = () => {
-    setPhase("done");
-    // Auto-commit confirmation for the high-confidence update.
-    toast.success("Committed to Eleanor Harrington — balance updated", {
-      description: "4 high-confidence changes committed · 1 sent to Staging",
-    });
   };
 
   const stop = () => {
-    clearAll();
-    setPartial("");
+    stopTimer();
+    if (recorderRef.current && recorderRef.current.state !== "inactive") {
+      recorderRef.current.stop();
+    }
     setPhase("processing");
-    const t = setTimeout(finishProcessing, 2600);
-    phaseTimers.current.push(t);
+  };
+
+  const handleProcess = async (blob: Blob) => {
+    try {
+      // 1) Transcribe with Whisper.
+      setProcessStep("transcribing");
+      const form = new FormData();
+      form.append("audio", new File([blob], "echo.webm", { type: blob.type }));
+      const tRes = await fetch("/api/echo/transcribe", { method: "POST", body: form });
+      const tJson = await tRes.json();
+      if (!tRes.ok) throw new Error(tJson.error || "Transcription failed.");
+
+      const text: string = tJson.transcript ?? "";
+      setTranscript(text);
+
+      if (!text.trim()) {
+        toast.error("Nothing was transcribed — try again.");
+        setPhase("idle");
+        setProcessStep(null);
+        return;
+      }
+
+      // 2) Extract + verify + commit-or-stage.
+      setProcessStep("extracting");
+      const pRes = await fetch("/api/echo/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript: text }),
+      });
+      const pJson = await pRes.json();
+      if (!pRes.ok) throw new Error(pJson.error || "Processing failed.");
+
+      const res = pJson as ProcessResult;
+      setResult(res);
+      setPhase("done");
+      setProcessStep(null);
+
+      if (res.status === "committed") {
+        toast.success(
+          res.clientName
+            ? `Committed to ${res.clientName}${res.balanceAfterCents !== null ? " — balance updated" : ""}`
+            : "Committed",
+          { description: res.reason }
+        );
+      } else {
+        toast(res.invalid ? "Flagged — sent to Staging" : "Sent to Staging", {
+          description: res.reason,
+        });
+      }
+      // Refresh server components (Clients, Staging, Digest) with new data.
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong.");
+      setPhase("idle");
+      setProcessStep(null);
+    }
   };
 
   const reset = () => {
-    clearAll();
     setPhase("idle");
     setSeconds(0);
-    setLines([]);
-    setPartial("");
+    setTranscript("");
+    setResult(null);
   };
 
   const remaining = MAX_SECONDS - seconds;
@@ -202,15 +287,17 @@ export function EchoRecorder() {
               </span>
             </p>
             <p className="text-sm text-muted-foreground font-mono">
-              Verifying against CRM, compliance, and portfolio records…
+              {processStep === "transcribing"
+                ? "Transcribing your brief…"
+                : "Verifying against CRM, compliance, and portfolio records…"}
             </p>
           </>
         )}
-        {phase === "done" && (
+        {phase === "done" && result && (
           <>
             <p className="text-2xl font-display">Brief captured · {elapsed}</p>
             <p className="text-sm text-muted-foreground font-mono">
-              {lines.length} statements verified.{" "}
+              {result.status === "committed" ? "Auto-committed." : "Sent to Staging for review."}{" "}
               <button onClick={reset} className="text-[#eca8d6] hover:underline">
                 Record another
               </button>
@@ -227,23 +314,33 @@ export function EchoRecorder() {
           </span>
           {phase === "processing" && (
             <span className="text-xs font-mono uppercase tracking-wider text-[#eca8d6] animate-pulse">
-              Analyzing
+              {processStep === "transcribing" ? "Transcribing" : "Analyzing"}
             </span>
           )}
-          {phase === "done" && (
-            <span className="text-xs font-mono uppercase tracking-wider text-[#eca8d6]">
-              Sent to Staging
+          {phase === "done" && result && (
+            <span
+              className={`text-xs font-mono uppercase tracking-wider ${
+                result.status === "committed" ? "text-emerald-300" : "text-amber-300"
+              }`}
+            >
+              {result.status === "committed" ? "Auto-committed" : "Sent to Staging"}
             </span>
           )}
         </div>
 
         <div className="min-h-[260px] rounded-md border border-foreground/10 bg-foreground/[0.02] p-6 font-mono text-sm leading-relaxed">
-          {lines.length === 0 && !partial && phase !== "processing" && (
+          {phase === "idle" && !transcript && (
             <p className="text-muted-foreground/50">
-              Transcript will appear here as you speak…
+              Transcript will appear here after you record…
             </p>
           )}
-          {phase === "processing" && lines.length === 0 && (
+          {phase === "recording" && (
+            <p className="text-muted-foreground/60 flex items-center gap-2">
+              Listening…
+              <span className="inline-block w-2 h-4 align-middle bg-red-500 animate-pulse" />
+            </p>
+          )}
+          {phase === "processing" && !transcript && (
             <div className="space-y-3">
               {[0, 1, 2].map((i) => (
                 <div
@@ -254,24 +351,43 @@ export function EchoRecorder() {
               ))}
             </div>
           )}
-          <div className="space-y-3">
-            {lines.map((line, i) => (
-              <p key={i} className="text-foreground/90">
-                <span className="text-muted-foreground/40 mr-2">{String(i + 1).padStart(2, "0")}</span>
-                {line}
-              </p>
-            ))}
-            {partial && (
-              <p className="text-foreground/60">
-                <span className="text-muted-foreground/40 mr-2">
-                  {String(lines.length + 1).padStart(2, "0")}
-                </span>
-                {partial}
-                <span className="inline-block w-2 h-4 ml-1 align-middle bg-red-500 animate-pulse" />
+          {transcript && <p className="text-foreground/90 whitespace-pre-wrap">{transcript}</p>}
+        </div>
+
+        {/* Result detail */}
+        {phase === "done" && result && (
+          <div
+            className={`mt-4 rounded-md border p-5 ${
+              result.status === "committed"
+                ? "border-emerald-400/20 bg-emerald-400/[0.04]"
+                : result.invalid
+                ? "border-red-400/20 bg-red-400/[0.04]"
+                : "border-amber-400/20 bg-amber-400/[0.04]"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">
+                {result.clientName ?? "No client matched"}
+              </span>
+              <span className="text-xs font-mono text-muted-foreground">
+                {Math.round(result.confidence * 100)}% confidence
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground mb-2">{result.reason}</p>
+            {result.move && (
+              <p className="text-sm font-mono">
+                {result.move.direction === "in" ? "Inflow" : "Outflow"} ·{" "}
+                {formatCents(result.move.amountCents)}
+                {result.balanceAfterCents !== null && (
+                  <span className="text-muted-foreground">
+                    {" "}
+                    → new balance {formatCents(result.balanceAfterCents)}
+                  </span>
+                )}
               </p>
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

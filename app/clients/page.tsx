@@ -3,22 +3,32 @@ import Link from "next/link";
 import { ArrowUpRight, Clock } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { SentimentTag } from "@/components/app/sentiment-tag";
-import { clients, formatBalance } from "@/lib/mock-data";
+import { formatCents } from "@/lib/mock-data";
+import { getClients, getLastContactByClient } from "@/lib/queries";
+import { householdLabel, relativeFromNow } from "@/lib/display";
+import type { Sentiment } from "@/db/schema";
 
 export const metadata: Metadata = {
   title: "Clients · Rapport",
   description: "Your book of business with live sentiment.",
 };
 
-export default function ClientsPage() {
-  const totalAum = clients.reduce((sum, c) => sum + c.balance, 0);
+export const dynamic = "force-dynamic";
+
+export default async function ClientsPage() {
+  const [clients, lastContact] = await Promise.all([
+    getClients(),
+    getLastContactByClient(),
+  ]);
+
+  const totalAum = clients.reduce((sum, c) => sum + (c.totalBalanceCents ?? 0), 0);
 
   const counts = clients.reduce(
     (acc, c) => {
-      acc[c.sentiment] += 1;
+      if (c.sentiment) acc[c.sentiment] += 1;
       return acc;
     },
-    { green: 0, amber: 0, red: 0 } as Record<string, number>
+    { green: 0, amber: 0, red: 0 } as Record<Sentiment, number>
   );
 
   return (
@@ -38,7 +48,7 @@ export default function ClientsPage() {
 
           <div className="flex items-center gap-8">
             <div>
-              <p className="text-3xl font-display">{formatBalance(totalAum)}</p>
+              <p className="text-3xl font-display">{formatCents(totalAum)}</p>
               <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground mt-1">
                 Total AUM
               </p>
@@ -91,13 +101,13 @@ export default function ClientsPage() {
                     <ArrowUpRight className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-muted-foreground" />
                   </p>
                   <p className="text-xs font-mono text-muted-foreground mt-1">
-                    {client.household}
+                    {householdLabel(client.name)}
                   </p>
                 </div>
 
                 <div className="md:col-span-3 md:text-right">
                   <p className="text-base font-display tabular-nums">
-                    {formatBalance(client.balance)}
+                    {formatCents(client.totalBalanceCents ?? 0)}
                   </p>
                   <p className="text-xs font-mono text-muted-foreground mt-1 md:hidden">
                     Total balance
@@ -105,7 +115,7 @@ export default function ClientsPage() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <SentimentTag sentiment={client.sentiment} />
+                  <SentimentTag sentiment={client.sentiment ?? "green"} />
                 </div>
 
                 <div className="md:col-span-2 md:text-right">
@@ -121,7 +131,7 @@ export default function ClientsPage() {
                     {client.sentiment === "red" && (
                       <Clock className="w-3.5 h-3.5" aria-hidden="true" />
                     )}
-                    {client.lastContact}
+                    {relativeFromNow(lastContact.get(client.id))}
                   </p>
                 </div>
               </Link>
